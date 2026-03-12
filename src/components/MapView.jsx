@@ -12,10 +12,16 @@ import LocateButton from './LocateButton'
 import RestaurantMarker from './RestaurantMarker'
 
 const createClusterCustomIcon = function (cluster) {
+  const count = cluster.getChildCount()
+
   return L.divIcon({
-    html: `<span>${cluster.getChildCount()}</span>`,
+    html: `
+      <div class="custom-cluster-core" aria-label="${count} restaurants in this cluster">
+        <span>${count}</span>
+      </div>
+    `,
     className: 'custom-cluster-icon',
-    iconSize: L.point(40, 40, true),
+    iconSize: L.point(54, 54, true),
   })
 }
 
@@ -35,7 +41,13 @@ function MapController({ selectedRestaurant }) {
   return null
 }
 
-export default function MapView({ restaurants, statusMap, onSelectRestaurant, selectedRestaurant }) {
+export default function MapView({
+  restaurants,
+  statusMap,
+  onSelectRestaurant,
+  selectedRestaurant,
+  onLocateError,
+}) {
   return (
     <MapContainer
       center={KOCHI_CENTER}
@@ -47,7 +59,11 @@ export default function MapView({ restaurants, statusMap, onSelectRestaurant, se
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <MarkerClusterGroup chunkedLoading iconCreateFunction={createClusterCustomIcon}>
+      <MarkerClusterGroup
+        chunkedLoading
+        showCoverageOnHover={false}
+        iconCreateFunction={createClusterCustomIcon}
+      >
         {restaurants.map((r) => {
           const key = buildStatusKey(r.lat, r.lng)
           const statusData = statusMap[key]
@@ -58,12 +74,13 @@ export default function MapView({ restaurants, statusMap, onSelectRestaurant, se
               key={`${r.id}_${key}`}
               restaurant={r}
               status={status}
+              isSelected={selectedRestaurant?.id === r.id}
               onClick={onSelectRestaurant}
             />
           )
         })}
       </MarkerClusterGroup>
-      <LocateButton />
+      <LocateButton onError={onLocateError} />
       <MapController selectedRestaurant={selectedRestaurant} />
     </MapContainer>
   )

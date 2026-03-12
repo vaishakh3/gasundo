@@ -3,6 +3,8 @@
 import { Marker } from 'react-leaflet'
 import L from 'leaflet'
 
+import { getStatusMeta } from '@/lib/status-ui'
+
 const brandLogos = {
   "McDonald's": "/logos/mcdonalds.png",
   "KFC": "/logos/kfc.png",
@@ -22,42 +24,54 @@ const STATUS_RING_COLORS = {
 
 const iconCache = {}
 
-function createRingIcon(restaurant, status) {
+function createRingIcon(restaurant, status, isSelected) {
   const ringColor = STATUS_RING_COLORS[status] || STATUS_RING_COLORS.unknown
   const hasBrand = restaurant.brand && brandLogos[restaurant.brand]
   const iconUrl = hasBrand ? brandLogos[restaurant.brand] : '/default-marker.png'
-  const cacheKey = `${iconUrl}_${status}`
+  const size = isSelected ? 58 : 46
+  const imageSize = isSelected ? 34 : 28
+  const borderWidth = isSelected ? 4 : 3
+  const cacheKey = `${iconUrl}_${status}_${isSelected ? 'selected' : 'default'}`
 
   if (iconCache[cacheKey]) return iconCache[cacheKey]
 
   const html = `
     <div style="
-      width: 44px; height: 44px;
+      width: ${size}px; height: ${size}px;
       border-radius: 50%;
-      border: 3px solid ${ringColor};
-      background: white;
+      border: ${borderWidth}px solid ${ringColor};
+      background: rgba(247, 250, 252, 0.98);
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: ${
+        isSelected
+          ? `0 0 0 8px rgba(255,122,69,0.18), 0 20px 44px rgba(5,8,22,0.36)`
+          : `0 12px 26px rgba(5,8,22,0.28)`
+      };
     ">
-      <img src="${iconUrl}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;" />
+      <img src="${iconUrl}" alt="" aria-hidden="true" style="width: ${imageSize}px; height: ${imageSize}px; border-radius: 50%; object-fit: cover;" />
     </div>
   `
 
   iconCache[cacheKey] = L.divIcon({
     html,
     className: 'custom-ring-marker',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   })
 
   return iconCache[cacheKey]
 }
 
-export default function RestaurantMarker({ restaurant, status, onClick }) {
+export default function RestaurantMarker({ restaurant, status, isSelected, onClick }) {
+  const statusMeta = getStatusMeta(status)
+
   return (
     <Marker
       position={[restaurant.lat, restaurant.lng]}
-      icon={createRingIcon(restaurant, status)}
+      icon={createRingIcon(restaurant, status, isSelected)}
+      title={`${restaurant.name}: ${statusMeta.label}`}
+      alt={`${restaurant.name}: ${statusMeta.label}`}
+      keyboard
       eventHandlers={{
         click: () => onClick(restaurant),
       }}

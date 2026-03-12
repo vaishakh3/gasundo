@@ -7,14 +7,14 @@ import L from 'leaflet'
 let userMarker = null
 let userAccuracyCircle = null
 
-export default function LocateButton() {
+export default function LocateButton({ onError }) {
   const map = useMap()
   const [locating, setLocating] = useState(false)
 
   const handleLocate = () => {
     setLocating(true)
 
-    map.locate({ setView: false, maxZoom: 16 })
+    map.locate({ setView: false, maxZoom: 16, enableHighAccuracy: true })
 
     map.once('locationfound', (e) => {
       setLocating(false)
@@ -48,7 +48,7 @@ export default function LocateButton() {
 
     map.once('locationerror', () => {
       setLocating(false)
-      alert('Could not get your location. Please enable GPS.')
+      onError?.('Could not get your location. Please enable GPS or location access.')
     })
   }
 

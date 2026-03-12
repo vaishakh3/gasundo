@@ -1,6 +1,18 @@
 import './globals.css'
 
+import { Public_Sans, Space_Grotesk } from 'next/font/google'
+
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
+
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  variable: '--font-public-sans',
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+})
 
 export const metadata = {
   title: 'GasUndo Kochi - Live Restaurant Status Map',
@@ -24,15 +36,15 @@ export const metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: '#1a1a2e',
+  themeColor: '#090f20',
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#1a1a2e] text-white antialiased">
+      <body
+        className={`${publicSans.variable} ${spaceGrotesk.variable} min-h-screen bg-[var(--ink-950)] font-sans text-[var(--text-primary)] antialiased`}
+      >
         {children}
         <ServiceWorkerRegister />
       </body>

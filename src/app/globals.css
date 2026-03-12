@@ -1,25 +1,70 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+:root {
+  --ink-950: #060b18;
+  --ink-900: #0a1226;
+  --ink-850: #111a36;
+  --surface-strong: rgba(13, 19, 38, 0.9);
+  --surface-soft: rgba(255, 255, 255, 0.06);
+  --surface-line: rgba(255, 255, 255, 0.1);
+  --text-primary: #f7fafc;
+  --text-secondary: #d8e0ee;
+  --text-muted: #93a4bd;
+  --accent-ember: #ff7a45;
+  --accent-gold: #ffd2a6;
+}
+
 html,
 body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #1a1a2e;
+  background:
+    radial-gradient(circle at top left, rgba(255, 122, 69, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(250, 204, 21, 0.08), transparent 18%),
+    linear-gradient(180deg, #091122, #060b18 46%, #040811);
 }
 
 body {
   min-height: 100dvh;
+  font-family: var(--font-public-sans), sans-serif;
+  color: var(--text-primary);
 }
 
 * {
   box-sizing: border-box;
 }
 
+.font-display {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
 .map-container {
   height: 100dvh;
   width: 100%;
+}
+
+.leaflet-container {
+  background: #08111f;
+}
+
+.leaflet-tile {
+  filter: saturate(0.78) brightness(0.78) contrast(1.04);
+}
+
+.leaflet-control-attribution {
+  margin: 0 14px 14px 0 !important;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 16, 31, 0.82) !important;
+  color: rgba(226, 232, 240, 0.76);
+  box-shadow: 0 14px 34px rgba(5, 8, 22, 0.24);
+  backdrop-filter: blur(14px);
+}
+
+.leaflet-control-attribution a {
+  color: rgba(255, 210, 166, 0.84) !important;
 }
 
 .leaflet-pane {
@@ -37,6 +82,23 @@ body {
 
 [data-rsbs-backdrop] {
   z-index: 998 !important;
+  background: rgba(4, 8, 17, 0.48) !important;
+  backdrop-filter: blur(6px);
+}
+
+[data-rsbs-root] {
+  z-index: 1100 !important;
+}
+
+[data-rsbs-header] {
+  padding-top: 12px;
+}
+
+[data-rsbs-header]::before {
+  width: 48px !important;
+  height: 5px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.45) !important;
 }
 
 @keyframes fadeIn {
@@ -55,8 +117,26 @@ body {
   animation: fadeIn 0.3s ease-out;
 }
 
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+input,
+textarea {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(255, 210, 166, 0.9);
+  outline-offset: 2px;
+}
+
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -64,8 +144,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  background: rgba(148, 163, 184, 0.32);
+  border-radius: 999px;
 }
 
 .custom-ring-marker {
@@ -75,38 +155,39 @@ body {
 
 .locate-button {
   position: absolute;
-  bottom: 80px;
+  bottom: max(116px, calc(env(safe-area-inset-bottom) + 104px));
   right: 16px;
-  z-index: 999;
-  width: 48px;
-  height: 48px;
+  z-index: 1002;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: #1a1a2e;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 16, 31, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: white;
   font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: all 0.2s;
+  box-shadow: 0 22px 38px rgba(5, 8, 22, 0.36);
+  backdrop-filter: blur(18px);
+  transition: all 0.2s ease;
 }
 
 .locate-button:hover {
-  background: #2a2a4e;
+  background: rgba(15, 24, 46, 0.95);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
 .locate-button:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
 .locate-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: white;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-top-color: rgba(255, 210, 166, 0.9);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -119,6 +200,31 @@ body {
 
 .user-location-marker {
   animation: pulse 2s ease-in-out infinite;
+}
+
+.custom-cluster-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.custom-cluster-core {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(circle at top, rgba(255, 210, 166, 0.26), transparent 40%),
+    linear-gradient(180deg, rgba(13, 19, 38, 0.96), rgba(9, 14, 28, 0.92));
+  color: white;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 0 6px rgba(255, 122, 69, 0.12),
+    0 24px 44px rgba(5, 8, 22, 0.36);
+  backdrop-filter: blur(14px);
 }
 
 @keyframes pulse {
@@ -141,15 +247,13 @@ body {
   display: none;
 }
 
-.custom-cluster-icon {
-  background-color: #1a1a2e;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-weight: bold;
-  font-size: 14px;
-  border-radius: 50%;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+@media (min-width: 1024px) {
+  .map-container {
+    height: 100vh;
+  }
+
+  .locate-button {
+    bottom: 24px;
+    right: 24px;
+  }
 }
