@@ -147,8 +147,8 @@ export default function HomeClient({
   }
 
   return (
-    <div className="min-h-screen overflow-hidden">
-      <div className="relative min-h-screen lg:flex">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden">
+      <div className="relative min-h-screen lg:flex lg:h-full lg:min-h-0">
         <RestaurantPanel
           filter={filter}
           onFilterChange={handleFilterChange}
@@ -168,7 +168,7 @@ export default function HomeClient({
           isPending={isPending}
         />
 
-        <div className="relative min-h-screen flex-1 overflow-hidden">
+        <div className="relative min-h-[100dvh] flex-1 overflow-hidden lg:h-full lg:min-h-0">
           <div className="absolute inset-0">
             <MapView
               restaurants={visibleRestaurants}

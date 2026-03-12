@@ -247,7 +247,17 @@ textarea {
   display: none;
 }
 
+.desktop-sidebar-scroll {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 @media (min-width: 1024px) {
+  html,
+  body {
+    overflow: hidden;
+  }
+
   .map-container {
     height: 100vh;
   }

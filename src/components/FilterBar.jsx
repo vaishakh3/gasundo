@@ -39,11 +39,11 @@ export default function FilterBar({
   const rootClass =
     variant === 'mobile'
       ? 'pointer-events-none absolute inset-x-0 top-0 z-[1000] px-3 pb-4 pt-[max(12px,env(safe-area-inset-top))] lg:hidden'
-      : 'flex flex-col gap-4'
+      : 'flex flex-col gap-3'
   const cardClass =
     variant === 'mobile'
       ? 'pointer-events-auto rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,18,36,0.88),rgba(10,16,32,0.74))] px-4 py-4 shadow-[0_24px_60px_rgba(5,8,22,0.35)] backdrop-blur-2xl'
-      : 'rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,23,46,0.9),rgba(10,16,31,0.78))] p-4 shadow-[0_22px_58px_rgba(5,8,22,0.22)] backdrop-blur-2xl'
+      : 'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,23,46,0.9),rgba(10,16,31,0.78))] p-3 shadow-[0_18px_44px_rgba(5,8,22,0.2)] backdrop-blur-2xl'
 
   const handleSelectSuggestion = (suggestion) => {
     const selectedRestaurant = restaurants.find(
@@ -128,7 +128,9 @@ export default function FilterBar({
             }
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className={`w-full rounded-[22px] border px-4 py-3 pl-11 text-sm text-white transition placeholder:text-slate-300/38 focus:outline-none focus:ring-2 focus:ring-white/12 ${
+            className={`w-full rounded-[22px] border px-4 text-sm text-white transition placeholder:text-slate-300/38 focus:outline-none focus:ring-2 focus:ring-white/12 ${
+              variant === 'panel' ? 'py-2.5 pl-10' : 'py-3 pl-11'
+            } ${
               searchFocused
                 ? 'border-white/18 bg-white/10'
                 : 'border-white/10 bg-white/6 hover:border-white/16'
@@ -136,7 +138,9 @@ export default function FilterBar({
           />
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base text-slate-300/45"
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-base text-slate-300/45 ${
+              variant === 'panel' ? 'left-3.5' : 'left-4'
+            }`}
           >
             ⌕
           </span>
@@ -145,7 +149,9 @@ export default function FilterBar({
               type="button"
               onClick={() => onFilterChange({ ...filter, search: '' })}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/6 px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300/72 transition hover:border-white/16 hover:bg-white/10 hover:text-white"
+              className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300/72 transition hover:border-white/16 hover:bg-white/10 hover:text-white ${
+                variant === 'panel' ? 'px-2 py-1' : 'px-2.5 py-1.5'
+              }`}
             >
               Clear
             </button>
@@ -173,20 +179,22 @@ export default function FilterBar({
           ) : null}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
-            {resultCount === totalCount
-              ? `${totalCount} mapped places`
-              : `${resultCount} matching places`}
+        {variant !== 'panel' ? (
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
+              {resultCount === totalCount
+                ? `${totalCount} mapped places`
+                : `${resultCount} matching places`}
+            </div>
+            {isPending ? (
+              <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.22em] text-slate-200/72">
+                Updating
+              </span>
+            ) : null}
           </div>
-          {isPending ? (
-            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.66rem] font-semibold uppercase tracking-[0.22em] text-slate-200/72">
-              Updating
-            </span>
-          ) : null}
-        </div>
+        ) : null}
 
-        <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className={`${variant === 'panel' ? 'mt-2' : 'mt-3'} flex gap-2 overflow-x-auto no-scrollbar`}>
           {STATUS_FILTERS.map((statusFilter) => {
             const isActive = filter.statusFilter === statusFilter.value
             const count = getFilterCount(
@@ -204,7 +212,9 @@ export default function FilterBar({
                 onClick={() =>
                   onFilterChange({ ...filter, statusFilter: statusFilter.value })
                 }
-                className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition ${
+                className={`inline-flex items-center gap-2 rounded-full border text-sm font-semibold whitespace-nowrap transition ${
+                  variant === 'panel' ? 'min-h-10 px-3.5 py-2' : 'min-h-11 px-4 py-2.5'
+                } ${
                   isActive
                     ? statusMeta
                       ? `${statusMeta.badgeClass} shadow-[0_16px_32px_rgba(5,8,22,0.22)]`
