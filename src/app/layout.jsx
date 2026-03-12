@@ -11,6 +11,16 @@ export const metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'GasUndo Kochi',
+    startupImage: [
+      { url: '/splash/ipadpro3_splash.png', media: '(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)' },
+      { url: '/splash/ipadpro2_splash.png', media: '(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)' },
+      { url: '/splash/ipad_splash.png', media: '(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)' },
+      { url: '/splash/iphonexsmax_splash.png', media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/iphonexr_splash.png', media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)' },
+      { url: '/splash/iphonex_splash.png', media: '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/iphoneplus_splash.png', media: '(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/iphone6_splash.png', media: '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)' },
+    ],
   },
   icons: {
     icon: [
