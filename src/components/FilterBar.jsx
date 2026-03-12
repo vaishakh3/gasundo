@@ -11,7 +11,7 @@ export default function FilterBar({ onFilterChange, filter }) {
   const [searchFocused, setSearchFocused] = useState(false)
 
   return (
-    <div className="absolute top-20 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-auto">
+    <div className="absolute top-16 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-auto">
       {/* Search */}
       <div className="relative">
         <input
