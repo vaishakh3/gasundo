@@ -23,32 +23,12 @@ export async function updateStatus({ restaurant_name, lat, lng, status, note }) 
     body: JSON.stringify({ restaurant_name, lat, lng, status, note }),
   })
 
-<<<<<<< Updated upstream
   const payload = await parseResponse(
     response,
     'Could not save your update right now.'
   )
 
   return payload.status
-=======
-  const { data, error } = await supabase.functions.invoke('update-status', {
-    body: {
-      action: 'insert_status',
-      payload: { restaurant_name, lat, lng, status, note }
-    }
-  })
-
-  // Check if it's our 429 error
-  if (error && error.message.includes('Too many requests')) {
-    alert('You are doing that too fast. Please wait a minute.')
-    throw new Error('Rate limit exceeded')
-  } else if (error) {
-    console.error('Error invoking update-status:', error)
-    throw error
-  }
-
-  return data
->>>>>>> Stashed changes
 }
 
 export async function confirmStatus(statusId) {
@@ -56,29 +36,10 @@ export async function confirmStatus(statusId) {
     method: 'POST',
   })
 
-<<<<<<< Updated upstream
   const payload = await parseResponse(
     response,
     'Could not confirm this update right now.'
   )
 
   return payload.status
-=======
-  const { data, error } = await supabase.functions.invoke('update-status', {
-    body: {
-      action: 'confirm_status',
-      payload: { statusId }
-    }
-  })
-
-  if (error && error.message.includes('Too many requests')) {
-    alert('You are doing that too fast. Please wait a minute.')
-    throw new Error('Rate limit exceeded')
-  } else if (error) {
-    console.error('Error invoking confirm_status:', error)
-    throw error
-  }
-
-  return data
->>>>>>> Stashed changes
 }
