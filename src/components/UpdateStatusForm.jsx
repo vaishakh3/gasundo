@@ -19,6 +19,7 @@ export default function UpdateStatusForm({ restaurant, onSubmit, onCancel }) {
     try {
       await onSubmit({
         restaurant_name: restaurant.name,
+        restaurant_key: restaurant.restaurant_key,
         lat: restaurant.lat,
         lng: restaurant.lng,
         status,
@@ -55,33 +56,33 @@ export default function UpdateStatusForm({ restaurant, onSubmit, onCancel }) {
           const isActive = status === value
 
           return (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setStatus(value)}
-            className={`group flex w-full items-center justify-between gap-4 rounded-[22px] border px-4 py-4 text-left transition-all ${
-              isActive
-                ? `${meta.badgeClass} ring-2 ring-white/16`
-                : 'border-white/10 bg-white/6 text-slate-200/88 hover:border-white/18 hover:bg-white/10'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className={`h-3 w-3 rounded-full ${meta.dotClass}`} />
-              <div>
-                <div className="font-semibold text-white">{meta.detailLabel}</div>
-                <div className="text-sm text-slate-300/70">{meta.detailCopy}</div>
-              </div>
-            </div>
-            <span
-              className={`rounded-full border px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.24em] ${
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStatus(value)}
+              className={`group flex w-full items-center justify-between gap-4 rounded-[22px] border px-4 py-4 text-left transition-all ${
                 isActive
-                  ? 'border-white/16 bg-white/10 text-white'
-                  : 'border-white/10 text-slate-300/75 group-hover:border-white/16'
+                  ? `${meta.badgeClass} ring-2 ring-white/16`
+                  : 'border-white/10 bg-white/6 text-slate-200/88 hover:border-white/18 hover:bg-white/10'
               }`}
             >
-              Select
-            </span>
-          </button>
+              <div className="flex items-center gap-3">
+                <span className={`h-3 w-3 rounded-full ${meta.dotClass}`} />
+                <div>
+                  <div className="font-semibold text-white">{meta.detailLabel}</div>
+                  <div className="text-sm text-slate-300/70">{meta.detailCopy}</div>
+                </div>
+              </div>
+              <span
+                className={`rounded-full border px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.24em] ${
+                  isActive
+                    ? 'border-white/16 bg-white/10 text-white'
+                    : 'border-white/10 text-slate-300/75 group-hover:border-white/16'
+                }`}
+              >
+                Select
+              </span>
+            </button>
           )
         })}
       </div>

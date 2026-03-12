@@ -11,10 +11,13 @@ function getFilterCount(value, totalCount, summaryCounts) {
 }
 
 export default function FilterBar({
-  onFilterChange,
-  filter,
-  restaurants = [],
-  onSelect,
+  searchValue,
+  onSearchChange,
+  onClearSearch,
+  statusFilter,
+  onStatusFilterChange,
+  suggestions = [],
+  onSelectSuggestion,
   resultCount = 0,
   totalCount = 0,
   summaryCounts = { open: 0, limited: 0, closed: 0, unknown: 0 },
@@ -24,38 +27,17 @@ export default function FilterBar({
 }) {
   const [searchFocused, setSearchFocused] = useState(false)
 
-  const suggestions = filter.search
-    ? Array.from(
-        new Set(
-          restaurants
-            .filter((restaurant) =>
-              restaurant.name.toLowerCase().includes(filter.search.toLowerCase())
-            )
-            .map((restaurant) => restaurant.name)
-        )
-      ).slice(0, 5)
-    : []
-
   const rootClass =
     variant === 'mobile'
       ? 'pointer-events-none absolute inset-x-0 top-0 z-[1000] px-3 pb-4 pt-[max(12px,env(safe-area-inset-top))] lg:hidden'
-      : 'flex flex-col gap-3'
+      : 'relative z-30 flex flex-col gap-3'
   const cardClass =
     variant === 'mobile'
       ? 'pointer-events-auto rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,18,36,0.88),rgba(10,16,32,0.74))] px-4 py-4 shadow-[0_24px_60px_rgba(5,8,22,0.35)] backdrop-blur-2xl'
-      : 'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,23,46,0.9),rgba(10,16,31,0.78))] p-3 shadow-[0_18px_44px_rgba(5,8,22,0.2)] backdrop-blur-2xl'
+      : 'relative overflow-visible rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,23,46,0.9),rgba(10,16,31,0.78))] p-3 shadow-[0_18px_44px_rgba(5,8,22,0.2)] backdrop-blur-2xl'
 
   const handleSelectSuggestion = (suggestion) => {
-    const selectedRestaurant = restaurants.find(
-      (restaurant) => restaurant.name === suggestion
-    )
-
-    onFilterChange({ ...filter, search: suggestion })
-
-    if (selectedRestaurant && onSelect) {
-      onSelect(selectedRestaurant)
-    }
-
+    onSelectSuggestion?.(suggestion)
     setSearchFocused(false)
   }
 
@@ -114,7 +96,9 @@ export default function FilterBar({
           </>
         ) : null}
 
-        <div className={`relative z-10 ${variant === 'mobile' ? 'mt-4' : ''}`}>
+        <div
+          className={`relative ${variant === 'panel' ? 'z-40' : 'z-10'} ${variant === 'mobile' ? 'mt-4' : ''}`}
+        >
           <label className="sr-only" htmlFor={`restaurant-search-${variant}`}>
             Search restaurants
           </label>
@@ -122,10 +106,8 @@ export default function FilterBar({
             id={`restaurant-search-${variant}`}
             type="text"
             placeholder="Search restaurants"
-            value={filter.search}
-            onChange={(event) =>
-              onFilterChange({ ...filter, search: event.target.value })
-            }
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             className={`w-full rounded-[22px] border px-4 text-sm text-white transition placeholder:text-slate-300/38 focus:outline-none focus:ring-2 focus:ring-white/12 ${
@@ -144,10 +126,10 @@ export default function FilterBar({
           >
             ⌕
           </span>
-          {filter.search ? (
+          {searchValue ? (
             <button
               type="button"
-              onClick={() => onFilterChange({ ...filter, search: '' })}
+              onClick={onClearSearch}
               aria-label="Clear search"
               className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300/72 transition hover:border-white/16 hover:bg-white/10 hover:text-white ${
                 variant === 'panel' ? 'px-2 py-1' : 'px-2.5 py-1.5'
@@ -157,11 +139,11 @@ export default function FilterBar({
             </button>
           ) : null}
 
-          {searchFocused && filter.search && suggestions.length > 0 ? (
-            <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-[22px] border border-white/10 bg-[rgba(10,16,31,0.96)] shadow-[0_24px_50px_rgba(5,8,22,0.34)] backdrop-blur-2xl">
+          {searchFocused && searchValue && suggestions.length > 0 ? (
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[22px] border border-white/10 bg-[rgba(10,16,31,0.96)] shadow-[0_24px_50px_rgba(5,8,22,0.34)] backdrop-blur-2xl">
               {suggestions.map((suggestion) => (
                 <button
-                  key={suggestion}
+                  key={suggestion.restaurantId}
                   type="button"
                   onMouseDown={(event) => {
                     event.preventDefault()
@@ -169,7 +151,14 @@ export default function FilterBar({
                   }}
                   className="flex w-full items-center justify-between gap-3 border-b border-white/6 px-4 py-3 text-left text-sm text-slate-100 transition hover:bg-white/8 last:border-b-0"
                 >
-                  <span>{suggestion}</span>
+                  <div>
+                    <span>{suggestion.label}</span>
+                    {suggestion.brand ? (
+                      <div className="mt-1 text-[0.66rem] uppercase tracking-[0.22em] text-slate-300/48">
+                        {suggestion.brand}
+                      </div>
+                    ) : null}
+                  </div>
                   <span className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-300/48">
                     select
                   </span>
@@ -194,24 +183,26 @@ export default function FilterBar({
           </div>
         ) : null}
 
-        <div className={`${variant === 'panel' ? 'mt-2' : 'mt-3'} flex gap-2 overflow-x-auto no-scrollbar`}>
-          {STATUS_FILTERS.map((statusFilter) => {
-            const isActive = filter.statusFilter === statusFilter.value
+        <div
+          className={`${variant === 'panel' ? 'mt-2' : 'mt-3'} flex gap-2 overflow-x-auto no-scrollbar`}
+        >
+          {STATUS_FILTERS.map((filterOption) => {
+            const isActive = statusFilter === filterOption.value
             const count = getFilterCount(
-              statusFilter.value,
+              filterOption.value,
               totalCount,
               summaryCounts
             )
             const statusMeta =
-              statusFilter.value !== 'all' ? STATUS_META[statusFilter.value] : null
+              filterOption.value !== 'all'
+                ? STATUS_META[filterOption.value]
+                : null
 
             return (
               <button
-                key={statusFilter.value}
+                key={filterOption.value}
                 type="button"
-                onClick={() =>
-                  onFilterChange({ ...filter, statusFilter: statusFilter.value })
-                }
+                onClick={() => onStatusFilterChange(filterOption.value)}
                 className={`inline-flex items-center gap-2 rounded-full border text-sm font-semibold whitespace-nowrap transition ${
                   variant === 'panel' ? 'min-h-10 px-3.5 py-2' : 'min-h-11 px-4 py-2.5'
                 } ${
@@ -223,9 +214,11 @@ export default function FilterBar({
                 }`}
               >
                 {statusMeta ? (
-                  <span className={`h-2.5 w-2.5 rounded-full ${statusMeta.dotClass}`} />
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${statusMeta.dotClass}`}
+                  />
                 ) : null}
-                <span>{statusFilter.label}</span>
+                <span>{filterOption.label}</span>
                 <span className="rounded-full border border-current/18 px-2 py-0.5 text-[0.68rem]">
                   {count}
                 </span>

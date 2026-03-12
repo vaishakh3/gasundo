@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 
 import { getClientIp } from '@/lib/http'
 import { enforceRateLimit, getStatusConfirmLimiter } from '@/lib/ratelimit'
-import { confirmStatus } from '@/lib/statuses'
+import { confirmStatus, STATUS_SNAPSHOT_CACHE_TAG } from '@/lib/statuses'
 import { validateStatusId } from '@/lib/status-validation'
 
 export const runtime = 'nodejs'
@@ -46,6 +47,7 @@ export async function POST(request, context) {
 
   try {
     const status = await confirmStatus(validation.data)
+    revalidateTag(STATUS_SNAPSHOT_CACHE_TAG)
     return NextResponse.json({ status }, { status: 200 })
   } catch (error) {
     console.error('Failed to confirm status update:', error)

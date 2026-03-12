@@ -22,7 +22,7 @@ export default function RestaurantDetailCard({
 
   useEffect(() => {
     setShowComposer(false)
-  }, [restaurant?.id])
+  }, [restaurant?.restaurant_key])
 
   if (!restaurant) return null
 
@@ -33,8 +33,17 @@ export default function RestaurantDetailCard({
   const isPanel = variant === 'panel'
   const surfaceClass =
     isPanel
-      ? 'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,25,50,0.94),rgba(11,17,34,0.94))] p-4 shadow-[0_22px_52px_rgba(5,8,22,0.3)]'
+      ? 'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,25,50,0.94),rgba(11,17,34,0.94))] p-5 shadow-[0_22px_52px_rgba(5,8,22,0.3)]'
       : 'rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,25,50,0.98),rgba(8,14,30,0.98))] px-5 pb-6 pt-2 shadow-[0_28px_70px_rgba(5,8,22,0.46)]'
+  const headerClass = isPanel ? 'space-y-4' : 'space-y-4'
+  const primaryGridClass = isPanel
+    ? 'grid gap-4 grid-cols-[1.1fr_0.9fr]'
+    : 'grid gap-3 sm:grid-cols-[1.25fr_0.95fr]'
+  const secondaryGridClass = isPanel ? 'grid gap-3.5' : 'grid gap-3 sm:grid-cols-2'
+  const bodyClass = isPanel
+    ? 'mt-5 space-y-4 border-t border-white/8 pt-4'
+    : `space-y-4 ${stickyHeader ? 'pt-5' : ''}`
+  const actionClass = isPanel ? 'flex flex-col gap-2.5' : 'flex flex-col gap-3 sm:flex-row'
 
   const handleSubmit = async (updateData) => {
     try {
@@ -55,7 +64,7 @@ export default function RestaurantDetailCard({
 
     setConfirming(true)
     try {
-      await onConfirm(statusData.id)
+      await onConfirm(statusData)
       onNotice?.('Thanks for confirming this update.', 'success')
 
       if (navigator.vibrate) {
@@ -71,12 +80,10 @@ export default function RestaurantDetailCard({
   return (
     <section className={surfaceClass}>
       <div
-        className={`${
-          isPanel ? 'space-y-3' : 'space-y-4'
-        } ${stickyHeader ? 'sticky top-0 z-10 -mx-5 -mt-2 rounded-b-[28px] border-b border-white/8 bg-[rgba(10,16,34,0.94)] px-5 pb-4 pt-3 backdrop-blur-2xl' : ''}`}
+        className={`${headerClass} ${stickyHeader ? 'sticky top-0 z-10 -mx-5 -mt-2 rounded-b-[28px] border-b border-white/8 bg-[rgba(10,16,34,0.94)] px-5 pb-4 pt-3 backdrop-blur-2xl' : ''}`}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className={isPanel ? 'space-y-1.5' : 'space-y-2'}>
+          <div className={isPanel ? 'max-w-[220px] space-y-2' : 'space-y-2'}>
             {restaurant.brand ? (
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-300/72">
                 {restaurant.brand}
@@ -87,7 +94,7 @@ export default function RestaurantDetailCard({
                 {restaurant.name}
               </h2>
               {isPanel ? (
-                <p className="mt-1 text-xs text-slate-300/62">
+                <p className="mt-1.5 max-w-[26ch] text-[0.8rem] leading-6 text-slate-300/62">
                   Latest crowd report for this place.
                 </p>
               ) : (
@@ -101,17 +108,17 @@ export default function RestaurantDetailCard({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-200/75 transition hover:border-white/18 hover:bg-white/10 hover:text-white"
+              className="mt-0.5 shrink-0 rounded-full border border-white/10 bg-white/6 px-3.5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-200/75 transition hover:border-white/18 hover:bg-white/10 hover:text-white"
             >
               Back
             </button>
           ) : null}
         </div>
 
-        <div className={`grid gap-3 ${isPanel ? 'grid-cols-[1.2fr_0.9fr]' : 'sm:grid-cols-[1.25fr_0.95fr]'}`}>
-          <div className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'p-3.5' : 'p-4'}`}>
+        <div className={primaryGridClass}>
+          <div className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'min-h-[152px] p-4' : 'p-4'}`}>
             <div className="flex items-start justify-between gap-3">
-              <div className="space-y-2">
+              <div className={isPanel ? 'space-y-2.5' : 'space-y-2'}>
                 <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.22em] ${statusMeta.badgeClass}`}>
                   <span className={`h-2.5 w-2.5 rounded-full ${statusMeta.dotClass}`} />
                   {statusMeta.label}
@@ -133,14 +140,14 @@ export default function RestaurantDetailCard({
             </div>
           </div>
 
-          <div className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'p-3.5' : 'p-4'}`}>
+          <div className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'min-h-[152px] p-4' : 'p-4'}`}>
             <div className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
               Freshness
             </div>
-            <div className={`mt-3 font-display font-semibold text-white ${isPanel ? 'text-base' : 'text-lg'}`}>
+            <div className={`mt-3.5 font-display font-semibold text-white ${isPanel ? 'text-[1.15rem]' : 'text-lg'}`}>
               {statusData?.updated_at ? timeAgoText : 'No recent report'}
             </div>
-            <div className={`${isPanel ? 'mt-1 text-xs' : 'mt-1 text-sm'} text-slate-300/72`}>
+            <div className={`${isPanel ? 'mt-2 text-xs leading-6' : 'mt-1 text-sm'} text-slate-300/72`}>
               {statusData?.updated_at
                 ? 'Based on the latest diner update.'
                 : 'Be the first to report this place.'}
@@ -149,25 +156,25 @@ export default function RestaurantDetailCard({
         </div>
       </div>
 
-      <div className={`space-y-4 ${stickyHeader ? 'pt-5' : ''}`}>
-        <div className={`grid gap-3 ${isPanel ? 'grid-cols-2' : 'sm:grid-cols-2'}`}>
-          <div className={`rounded-[20px] border border-white/10 bg-white/5 ${isPanel ? 'p-3.5' : 'p-4'}`}>
+      <div className={bodyClass}>
+        <div className={secondaryGridClass}>
+          <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
             <div className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
               Trust signal
             </div>
-            <div className={`mt-2 font-semibold text-white ${isPanel ? 'text-base' : 'text-lg'}`}>
+            <div className={`mt-2.5 font-semibold text-white ${isPanel ? 'text-[1.02rem]' : 'text-lg'}`}>
               {confirmations} {confirmations === 1 ? 'confirmation' : 'confirmations'}
             </div>
-            <p className={`${isPanel ? 'mt-1 text-xs leading-5' : 'mt-1 text-sm'} text-slate-300/72`}>
+            <p className={`${isPanel ? 'mt-1.5 text-xs leading-6' : 'mt-1 text-sm'} text-slate-300/72`}>
               Community check-ins supporting the latest report.
             </p>
           </div>
 
-          <div className={`rounded-[20px] border border-white/10 bg-white/5 ${isPanel ? 'p-3.5' : 'p-4'}`}>
+          <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
             <div className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
               Latest note
             </div>
-            <div className={`${isPanel ? 'mt-2 line-clamp-3 text-xs leading-5' : 'mt-2 text-sm leading-6'} text-slate-200/88`}>
+            <div className={`${isPanel ? 'mt-2.5 text-[0.82rem] leading-6' : 'mt-2 text-sm leading-6'} text-slate-200/88`}>
               {statusData?.note ? statusData.note : 'No note yet. Add one when you report.'}
             </div>
           </div>
@@ -176,7 +183,7 @@ export default function RestaurantDetailCard({
         {showComposer ? (
           <UpdateStatusForm restaurant={restaurant} onSubmit={handleSubmit} onCancel={() => setShowComposer(false)} />
         ) : (
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className={actionClass}>
             {hasKnownStatus ? (
               <button
                 type="button"

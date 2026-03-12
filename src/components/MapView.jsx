@@ -6,7 +6,6 @@ import { useEffect } from 'react'
 import L from 'leaflet'
 
 import { DEFAULT_MAP_ZOOM, KOCHI_CENTER } from '@/lib/constants'
-import { buildStatusKey } from '@/lib/status-key'
 
 import LocateButton from './LocateButton'
 import RestaurantMarker from './RestaurantMarker'
@@ -42,10 +41,12 @@ function MapController({ selectedRestaurant }) {
 }
 
 export default function MapView({
-  restaurants,
+  restaurantIds,
+  restaurantsById,
   statusMap,
   onSelectRestaurant,
   selectedRestaurant,
+  selectedRestaurantId,
   onLocateError,
 }) {
   return (
@@ -64,17 +65,22 @@ export default function MapView({
         showCoverageOnHover={false}
         iconCreateFunction={createClusterCustomIcon}
       >
-        {restaurants.map((r) => {
-          const key = buildStatusKey(r.lat, r.lng)
-          const statusData = statusMap[key]
+        {restaurantIds.map((restaurantId) => {
+          const restaurant = restaurantsById[restaurantId]
+
+          if (!restaurant) {
+            return null
+          }
+
+          const statusData = statusMap[restaurant.restaurant_key]
           const status = statusData?.status || 'unknown'
 
           return (
             <RestaurantMarker
-              key={`${r.id}_${key}`}
-              restaurant={r}
+              key={restaurant.restaurant_key}
+              restaurant={restaurant}
               status={status}
-              isSelected={selectedRestaurant?.id === r.id}
+              isSelected={selectedRestaurantId === restaurant.restaurant_key}
               onClick={onSelectRestaurant}
             />
           )

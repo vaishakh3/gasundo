@@ -14,13 +14,27 @@ async function parseResponse(response, fallbackMessage) {
   return payload
 }
 
-export async function updateStatus({ restaurant_name, lat, lng, status, note }) {
+export async function updateStatus({
+  restaurant_name,
+  restaurant_key,
+  lat,
+  lng,
+  status,
+  note,
+}) {
   const response = await fetch('/api/statuses', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ restaurant_name, lat, lng, status, note }),
+    body: JSON.stringify({
+      restaurant_name,
+      restaurant_key,
+      lat,
+      lng,
+      status,
+      note,
+    }),
   })
 
   const payload = await parseResponse(

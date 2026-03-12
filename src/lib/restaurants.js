@@ -2,10 +2,12 @@ import 'server-only'
 
 import { unstable_cache } from 'next/cache'
 
-import { KOCHI_BOUNDS, isWithinKochiBounds } from './constants'
+import { KOCHI_BOUNDS, isWithinKochiBounds } from './constants.js'
+import { buildRestaurantKey } from './status-key.js'
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const RESTAURANTS_CACHE_TTL_SECONDS = 24 * 60 * 60
+export const RESTAURANTS_CACHE_TAG = 'restaurant-catalog'
 
 const KOCHI_QUERY = `
 [out:json][timeout:25];
@@ -52,10 +54,14 @@ async function fetchRestaurantsFromOverpass() {
     .map((element) => {
       const lat = parseCoordinate(element.lat ?? element.center?.lat)
       const lng = parseCoordinate(element.lon ?? element.center?.lon)
+      const name = element.tags.name
 
       return {
-        id: element.id,
-        name: element.tags.name,
+        id: `${element.type}:${element.id}`,
+        restaurant_key: buildRestaurantKey({ name, lat, lng }),
+        osm_type: element.type,
+        osm_id: String(element.id),
+        name,
         brand: element.tags.brand || null,
         lat,
         lng,
@@ -67,10 +73,14 @@ async function fetchRestaurantsFromOverpass() {
         restaurant.lng !== null &&
         isWithinKochiBounds(restaurant.lat, restaurant.lng)
     )
+    .sort((left, right) => left.name.localeCompare(right.name))
 }
 
 export const getRestaurants = unstable_cache(
   fetchRestaurantsFromOverpass,
   ['restaurants'],
-  { revalidate: RESTAURANTS_CACHE_TTL_SECONDS }
+  {
+    revalidate: RESTAURANTS_CACHE_TTL_SECONDS,
+    tags: [RESTAURANTS_CACHE_TAG],
+  }
 )

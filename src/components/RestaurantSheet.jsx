@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
 import { Sheet } from 'react-modal-sheet'
 
 import RestaurantDetailCard from './RestaurantDetailCard'
@@ -12,14 +14,28 @@ export default function RestaurantSheet({
   onConfirm,
   onNotice,
 }) {
-  if (!restaurant) return null
+  const [isMobileViewport, setIsMobileViewport] = useState(null)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1023px)')
+    const syncViewport = () => {
+      setIsMobileViewport(mediaQuery.matches)
+    }
+
+    syncViewport()
+    mediaQuery.addEventListener('change', syncViewport)
+
+    return () => mediaQuery.removeEventListener('change', syncViewport)
+  }, [])
+
+  if (!restaurant || isMobileViewport !== true) return null
 
   return (
-    <div className="lg:hidden">
+    <div>
       <Sheet
         isOpen={!!restaurant}
         onClose={onClose}
-        snapPoints={[0, 140, 0.86]}
+        snapPoints={[0, 140, 1]}
         initialSnap={1}
       >
         <Sheet.Container

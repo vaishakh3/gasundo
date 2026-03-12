@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 
 import { getClientIp } from '@/lib/http'
 import { enforceRateLimit, getStatusCreateLimiter } from '@/lib/ratelimit'
-import { createStatus } from '@/lib/statuses'
+import { createStatus, STATUS_SNAPSHOT_CACHE_TAG } from '@/lib/statuses'
 import { validateCreateStatusPayload } from '@/lib/status-validation'
 
 export const runtime = 'nodejs'
@@ -52,6 +53,7 @@ export async function POST(request) {
 
   try {
     const status = await createStatus(validation.data)
+    revalidateTag(STATUS_SNAPSHOT_CACHE_TAG)
     return NextResponse.json({ status }, { status: 201 })
   } catch (error) {
     console.error('Failed to create status update:', error)

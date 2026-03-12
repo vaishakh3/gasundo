@@ -1,5 +1,5 @@
-import { buildStatusKey } from './status-key'
-import { formatTimeAgo, isTimestampStale } from './time-ago'
+import { getRestaurantKey } from './status-key.js'
+import { formatTimeAgo, isTimestampStale } from './time-ago.js'
 
 export const STATUS_META = {
   open: {
@@ -54,8 +54,8 @@ export function getStatusMeta(status) {
   return STATUS_META[status] || STATUS_META.unknown
 }
 
-export function getRestaurantDisplayData(restaurant, statusMap) {
-  const key = buildStatusKey(restaurant.lat, restaurant.lng)
+export function getRestaurantDisplayData(restaurant, statusMap, nowTimestamp) {
+  const key = getRestaurantKey(restaurant)
   const statusData = statusMap[key] || null
   const status = statusData?.status || 'unknown'
   const updatedAt = statusData?.updated_at || null
@@ -65,9 +65,11 @@ export function getRestaurantDisplayData(restaurant, statusMap) {
     status,
     statusData,
     meta: getStatusMeta(status),
-    freshnessText: updatedAt ? `Updated ${formatTimeAgo(updatedAt)}` : 'Needs an update',
+    freshnessText: updatedAt
+      ? `Updated ${formatTimeAgo(updatedAt, nowTimestamp)}`
+      : 'Needs an update',
     updatedAt,
-    isStale: isTimestampStale(updatedAt),
+    isStale: isTimestampStale(updatedAt, nowTimestamp),
     confirmations: statusData?.confirmations || 0,
     note: statusData?.note || '',
   }

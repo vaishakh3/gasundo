@@ -1,4 +1,5 @@
-import { isWithinKochiBounds, STATUS_VALUES } from './constants'
+import { isWithinKochiBounds, STATUS_VALUES } from './constants.js'
+import { buildRestaurantKey } from './status-key.js'
 
 function toNumber(value) {
   const normalized =
@@ -48,9 +49,22 @@ export function validateCreateStatusPayload(payload) {
     return { error: 'Note must be 200 characters or fewer.' }
   }
 
+  const restaurantKeyInput =
+    typeof payload.restaurant_key === 'string'
+      ? payload.restaurant_key.trim()
+      : ''
+  const restaurantKey =
+    restaurantKeyInput ||
+    buildRestaurantKey({ restaurant_name: restaurantName, lat, lng })
+
+  if (!restaurantKey || restaurantKey.length > 220) {
+    return { error: 'Restaurant key must be 220 characters or fewer.' }
+  }
+
   return {
     data: {
       restaurant_name: restaurantName,
+      restaurant_key: restaurantKey,
       lat,
       lng,
       status,

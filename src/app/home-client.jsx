@@ -1,38 +1,92 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useDeferredValue, useEffect, useMemo, useState, useTransition } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 
 import FilterBar from '@/components/FilterBar'
 import RestaurantPanel from '@/components/RestaurantPanel'
 import RestaurantSheet from '@/components/RestaurantSheet'
-import { buildStatusKey } from '@/lib/status-key'
 import {
-  compareRestaurantRecords,
-  getRestaurantDisplayData,
-  getStatusSummary,
-} from '@/lib/status-ui'
-import { confirmStatus, updateStatus } from '@/services/statusService'
+  buildCatalogIndex,
+  selectMapRestaurantIds,
+  selectSelectedRecord,
+  selectSuggestions,
+  selectSummaryCounts,
+  selectVisibleRestaurantIds,
+} from '@/lib/catalog-query'
+import { CATALOG_QUERY_KEY, STATUS_SNAPSHOT_QUERY_KEY } from '@/lib/query-keys'
+import { useQueryStore } from '@/store/query-store'
+import { fetchCatalog } from '@/services/catalogService'
+import { fetchStatusSnapshot } from '@/services/statusSnapshotService'
+import {
+  confirmStatus as confirmStatusRequest,
+  updateStatus as updateStatusRequest,
+} from '@/services/statusService'
 
 const MapView = dynamic(() => import('@/components/MapView'), {
   ssr: false,
   loading: () => <div className="map-container bg-[var(--ink-950)]" />,
 })
 
-export default function HomeClient({
-  initialRestaurants,
-  initialStatusMap,
-  initialError,
-}) {
-  const [restaurants] = useState(initialRestaurants)
-  const [statusMap, setStatusMap] = useState(initialStatusMap)
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null)
-  const [filter, setFilter] = useState({ search: '', statusFilter: 'all' })
+const EMPTY_STATUS_SNAPSHOT = {
+  generatedAt: null,
+  snapshotVersion: 'initial',
+  statuses: {},
+}
+
+function mergeStatusIntoSnapshot(snapshot, status) {
+  return {
+    generatedAt: new Date().toISOString(),
+    snapshotVersion: snapshot?.snapshotVersion || 'local',
+    statuses: {
+      ...(snapshot?.statuses || {}),
+      [status.restaurant_key]: status,
+    },
+  }
+}
+
+export default function HomeClient({ initialRestaurants, initialError }) {
+  const queryClient = useQueryClient()
+  const search = useQueryStore((state) => state.search)
+  const statusFilter = useQueryStore((state) => state.statusFilter)
+  const selectedRestaurantId = useQueryStore(
+    (state) => state.selectedRestaurantId
+  )
+  const setSearch = useQueryStore((state) => state.setSearch)
+  const clearSearch = useQueryStore((state) => state.clearSearch)
+  const setStatusFilter = useQueryStore((state) => state.setStatusFilter)
+  const setSelectedRestaurantId = useQueryStore(
+    (state) => state.setSelectedRestaurantId
+  )
+  const clearSelectedRestaurant = useQueryStore(
+    (state) => state.clearSelectedRestaurant
+  )
   const [notice, setNotice] = useState(() =>
     initialError ? { tone: 'error', message: initialError, id: 'initial-error' } : null
   )
-  const [isPending, startFilterTransition] = useTransition()
-  const deferredSearch = useDeferredValue(filter.search.trim().toLowerCase())
+  const deferredSearch = useDeferredValue(search)
+
+  const catalogQuery = useQuery({
+    queryKey: CATALOG_QUERY_KEY,
+    queryFn: fetchCatalog,
+    initialData: {
+      catalogVersion: 'server-rendered',
+      restaurants: initialRestaurants,
+    },
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  const statusSnapshotQuery = useQuery({
+    queryKey: STATUS_SNAPSHOT_QUERY_KEY,
+    queryFn: fetchStatusSnapshot,
+    initialData: EMPTY_STATUS_SNAPSHOT,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  })
 
   useEffect(() => {
     if (!notice?.id) return undefined
@@ -46,48 +100,64 @@ export default function HomeClient({
     return () => window.clearTimeout(timeoutId)
   }, [notice])
 
-  const restaurantRecords = useMemo(() => {
-    return restaurants.map((restaurant) => ({
-      restaurant,
-      ...getRestaurantDisplayData(restaurant, statusMap),
-    }))
-  }, [restaurants, statusMap])
+  const restaurants = useMemo(
+    () => catalogQuery.data?.restaurants || [],
+    [catalogQuery.data]
+  )
+  const statusSnapshot = statusSnapshotQuery.data || EMPTY_STATUS_SNAPSHOT
+  const statusMap = useMemo(
+    () => statusSnapshot.statuses || EMPTY_STATUS_SNAPSHOT.statuses,
+    [statusSnapshot]
+  )
 
-  const summaryCounts = useMemo(() => {
-    return getStatusSummary(restaurants, statusMap)
-  }, [restaurants, statusMap])
+  const catalogIndex = useMemo(
+    () => buildCatalogIndex(restaurants),
+    [restaurants]
+  )
 
-  const filteredRecords = useMemo(() => {
-    return restaurantRecords
-      .filter((record) => {
-        if (deferredSearch) {
-          const haystack = `${record.restaurant.name} ${record.restaurant.brand || ''}`
-          if (!haystack.toLowerCase().includes(deferredSearch)) {
-            return false
-          }
-        }
+  useEffect(() => {
+    if (
+      selectedRestaurantId &&
+      !catalogIndex.restaurantById[selectedRestaurantId]
+    ) {
+      clearSelectedRestaurant()
+    }
+  }, [catalogIndex, clearSelectedRestaurant, selectedRestaurantId])
 
-        if (
-          filter.statusFilter !== 'all' &&
-          record.status !== filter.statusFilter
-        ) {
-          return false
-        }
+  const queryState = useMemo(
+    () => ({
+      search: deferredSearch,
+      statusFilter,
+      selectedRestaurantId,
+    }),
+    [deferredSearch, selectedRestaurantId, statusFilter]
+  )
 
-        return true
-      })
-      .sort(compareRestaurantRecords)
-  }, [restaurantRecords, deferredSearch, filter.statusFilter])
+  const summaryCounts = useMemo(
+    () => selectSummaryCounts(catalogIndex, statusMap),
+    [catalogIndex, statusMap]
+  )
 
-  const selectedRecord = useMemo(() => {
-    if (!selectedRestaurant) return null
+  const suggestions = useMemo(
+    () => selectSuggestions(catalogIndex, search),
+    [catalogIndex, search]
+  )
 
-    return (
-      restaurantRecords.find(
-        (record) => record.restaurant.id === selectedRestaurant.id
-      ) || null
-    )
-  }, [restaurantRecords, selectedRestaurant])
+  const visibleRestaurantIds = useMemo(
+    () => selectVisibleRestaurantIds(catalogIndex, statusMap, queryState),
+    [catalogIndex, queryState, statusMap]
+  )
+
+  const selectedRecord = useMemo(
+    () =>
+      selectSelectedRecord(catalogIndex, statusMap, selectedRestaurantId),
+    [catalogIndex, selectedRestaurantId, statusMap]
+  )
+
+  const mapRestaurantIds = useMemo(
+    () => selectMapRestaurantIds(visibleRestaurantIds, selectedRestaurantId),
+    [selectedRestaurantId, visibleRestaurantIds]
+  )
 
   const showNotice = (message, tone = 'neutral') => {
     setNotice({
@@ -97,84 +167,158 @@ export default function HomeClient({
     })
   }
 
-  const handleFilterChange = (nextFilter) => {
-    startFilterTransition(() => {
-      setFilter(nextFilter)
-    })
-  }
+  const updateStatusMutation = useMutation({
+    mutationFn: updateStatusRequest,
+    onMutate: async (nextStatus) => {
+      await queryClient.cancelQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
 
-  const handleSelectRestaurant = (restaurant) => {
-    setSelectedRestaurant(restaurant)
-  }
+      const previousSnapshot =
+        queryClient.getQueryData(STATUS_SNAPSHOT_QUERY_KEY) ||
+        EMPTY_STATUS_SNAPSHOT
 
-  const visibleRestaurants = useMemo(() => {
-    const restaurantsFromFilters = filteredRecords.map((record) => record.restaurant)
-
-    if (
-      selectedRestaurant &&
-      !restaurantsFromFilters.some(
-        (restaurant) => restaurant.id === selectedRestaurant.id
+      queryClient.setQueryData(
+        STATUS_SNAPSHOT_QUERY_KEY,
+        mergeStatusIntoSnapshot(previousSnapshot, {
+          id: previousSnapshot.statuses[nextStatus.restaurant_key]?.id || `optimistic:${nextStatus.restaurant_key}`,
+          restaurant_key: nextStatus.restaurant_key,
+          restaurant_name: nextStatus.restaurant_name,
+          lat: nextStatus.lat,
+          lng: nextStatus.lng,
+          status: nextStatus.status,
+          note: nextStatus.note || null,
+          confirmations: 1,
+          updated_at: new Date().toISOString(),
+          created_at:
+            previousSnapshot.statuses[nextStatus.restaurant_key]?.created_at ||
+            new Date().toISOString(),
+        })
       )
-    ) {
-      return [...restaurantsFromFilters, selectedRestaurant]
-    }
 
-    return restaurantsFromFilters
-  }, [filteredRecords, selectedRestaurant])
+      return { previousSnapshot }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousSnapshot) {
+        queryClient.setQueryData(
+          STATUS_SNAPSHOT_QUERY_KEY,
+          context.previousSnapshot
+        )
+      }
+    },
+    onSuccess: (status) => {
+      queryClient.setQueryData(
+        STATUS_SNAPSHOT_QUERY_KEY,
+        (currentSnapshot) =>
+          mergeStatusIntoSnapshot(currentSnapshot || EMPTY_STATUS_SNAPSHOT, status)
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
+    },
+  })
+
+  const confirmStatusMutation = useMutation({
+    mutationFn: (statusData) => confirmStatusRequest(statusData.id),
+    onMutate: async (statusData) => {
+      await queryClient.cancelQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
+
+      const previousSnapshot =
+        queryClient.getQueryData(STATUS_SNAPSHOT_QUERY_KEY) ||
+        EMPTY_STATUS_SNAPSHOT
+
+      queryClient.setQueryData(
+        STATUS_SNAPSHOT_QUERY_KEY,
+        mergeStatusIntoSnapshot(previousSnapshot, {
+          ...statusData,
+          confirmations: Number(statusData.confirmations || 0) + 1,
+        })
+      )
+
+      return { previousSnapshot }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousSnapshot) {
+        queryClient.setQueryData(
+          STATUS_SNAPSHOT_QUERY_KEY,
+          context.previousSnapshot
+        )
+      }
+    },
+    onSuccess: (status) => {
+      queryClient.setQueryData(
+        STATUS_SNAPSHOT_QUERY_KEY,
+        (currentSnapshot) =>
+          mergeStatusIntoSnapshot(currentSnapshot || EMPTY_STATUS_SNAPSHOT, status)
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
+    },
+  })
+
+  const handleSelectRestaurant = (restaurantOrId) => {
+    const nextSelectedId =
+      typeof restaurantOrId === 'string'
+        ? restaurantOrId
+        : restaurantOrId?.restaurant_key || null
+
+    setSelectedRestaurantId(nextSelectedId)
+  }
+
+  const handleSelectSuggestion = (suggestion) => {
+    setSearch(suggestion.label)
+    setSelectedRestaurantId(suggestion.restaurantId)
+  }
+
+  const selectedRestaurant = selectedRecord?.restaurant || null
+  const selectedStatusData = selectedRecord?.statusData || null
+  const isFiltering = search !== deferredSearch
 
   const handleStatusUpdate = async (updateData) => {
-    const result = await updateStatus(updateData)
-    const key = buildStatusKey(result.lat, result.lng)
-
-    setStatusMap((previous) => ({
-      ...previous,
-      [key]: result,
-    }))
-
-    return result
+    return updateStatusMutation.mutateAsync(updateData)
   }
 
-  const handleConfirm = async (statusId) => {
-    const result = await confirmStatus(statusId)
-    const key = buildStatusKey(result.lat, result.lng)
-
-    setStatusMap((previous) => ({
-      ...previous,
-      [key]: result,
-    }))
-
-    return result
+  const handleConfirm = async (statusData) => {
+    return confirmStatusMutation.mutateAsync(statusData)
   }
 
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden">
       <div className="relative min-h-screen lg:flex lg:h-full lg:min-h-0">
         <RestaurantPanel
-          filter={filter}
-          onFilterChange={handleFilterChange}
-          restaurants={restaurants}
-          restaurantRecords={filteredRecords}
-          totalCount={restaurants.length}
-          resultCount={filteredRecords.length}
+          searchValue={search}
+          onSearchChange={setSearch}
+          onClearSearch={clearSearch}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          suggestions={suggestions}
+          onSelectSuggestion={handleSelectSuggestion}
+          visibleRestaurantIds={visibleRestaurantIds}
+          restaurantById={catalogIndex.restaurantById}
+          statusMap={statusMap}
+          totalCount={catalogIndex.restaurantIds.length}
+          resultCount={visibleRestaurantIds.length}
           summaryCounts={summaryCounts}
           selectedRestaurant={selectedRestaurant}
-          selectedStatusData={selectedRecord?.statusData || null}
+          selectedRestaurantId={selectedRestaurantId}
+          selectedStatusData={selectedStatusData}
           onSelectRestaurant={handleSelectRestaurant}
-          onClearSelection={() => setSelectedRestaurant(null)}
+          onClearSelection={clearSelectedRestaurant}
           onStatusUpdate={handleStatusUpdate}
           onConfirm={handleConfirm}
           onNotice={showNotice}
           notice={notice}
-          isPending={isPending}
+          isPending={isFiltering}
         />
 
         <div className="relative min-h-[100dvh] flex-1 overflow-hidden lg:h-full lg:min-h-0">
           <div className="absolute inset-0">
             <MapView
-              restaurants={visibleRestaurants}
+              restaurantIds={mapRestaurantIds}
+              restaurantsById={catalogIndex.restaurantById}
               statusMap={statusMap}
               onSelectRestaurant={handleSelectRestaurant}
               selectedRestaurant={selectedRestaurant}
+              selectedRestaurantId={selectedRestaurantId}
               onLocateError={(message) => showNotice(message, 'error')}
             />
           </div>
@@ -182,29 +326,31 @@ export default function HomeClient({
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,122,69,0.2),transparent_22%),radial-gradient(circle_at_top_right,rgba(250,204,21,0.08),transparent_18%),linear-gradient(180deg,rgba(6,10,22,0.42),transparent_26%,rgba(6,10,22,0.25))]" />
 
           <FilterBar
-            onFilterChange={handleFilterChange}
-            filter={filter}
-            restaurants={restaurants}
-            onSelect={handleSelectRestaurant}
-            resultCount={filteredRecords.length}
-            totalCount={restaurants.length}
+            searchValue={search}
+            onSearchChange={setSearch}
+            onClearSearch={clearSearch}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            suggestions={suggestions}
+            onSelectSuggestion={handleSelectSuggestion}
+            resultCount={visibleRestaurantIds.length}
+            totalCount={catalogIndex.restaurantIds.length}
             summaryCounts={summaryCounts}
             notice={notice}
-            isPending={isPending}
+            isPending={isFiltering}
             variant="mobile"
           />
 
           <RestaurantSheet
             restaurant={selectedRestaurant}
-            statusData={selectedRecord?.statusData || null}
-            onClose={() => setSelectedRestaurant(null)}
+            statusData={selectedStatusData}
+            onClose={clearSelectedRestaurant}
             onStatusUpdate={handleStatusUpdate}
             onConfirm={handleConfirm}
             onNotice={showNotice}
           />
         </div>
       </div>
-
     </div>
   )
 }

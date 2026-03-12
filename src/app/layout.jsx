@@ -2,6 +2,7 @@ import './globals.css'
 
 import { Public_Sans, Space_Grotesk } from 'next/font/google'
 
+import AppProviders from '@/components/AppProviders'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 
 const publicSans = Public_Sans({
@@ -45,7 +46,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${publicSans.variable} ${spaceGrotesk.variable} min-h-screen bg-[var(--ink-950)] font-sans text-[var(--text-primary)] antialiased`}
       >
-        {children}
+        <AppProviders>{children}</AppProviders>
         <ServiceWorkerRegister />
       </body>
     </html>
