@@ -1,10 +1,30 @@
 import { useState } from 'react'
 
 const STATUS_FILTERS = [
-  { value: 'all', label: 'All' },
-  { value: 'open', label: '🟢 Open' },
-  { value: 'limited', label: '🟡 Limited' },
-  { value: 'closed', label: '🔴 Closed' },
+  { 
+    value: 'all', 
+    label: 'All', 
+    activeClass: 'bg-white text-gray-900 border-white',
+    dotClass: null
+  },
+  { 
+    value: 'open', 
+    label: 'Open', 
+    activeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50',
+    dotClass: 'bg-emerald-500'
+  },
+  { 
+    value: 'limited', 
+    label: 'Limited', 
+    activeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/50',
+    dotClass: 'bg-amber-500'
+  },
+  { 
+    value: 'closed', 
+    label: 'Closed', 
+    activeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/50',
+    dotClass: 'bg-rose-500'
+  },
 ]
 
 export default function FilterBar({ onFilterChange, filter, restaurants = [], onSelect }) {
@@ -77,19 +97,25 @@ export default function FilterBar({ onFilterChange, filter, restaurants = [], on
 
       {/* Status pills */}
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-        {STATUS_FILTERS.map((sf) => (
-          <button
-            key={sf.value}
-            onClick={() => onFilterChange({ ...filter, statusFilter: sf.value })}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all backdrop-blur-md
-              ${filter.statusFilter === sf.value
-                ? 'bg-white text-gray-900'
-                : 'bg-[#1a1a2e]/80 text-white/60 border border-white/5'
-              }`}
-          >
-            {sf.label}
-          </button>
-        ))}
+        {STATUS_FILTERS.map((sf) => {
+          const isActive = filter.statusFilter === sf.value
+          return (
+            <button
+              key={sf.value}
+              onClick={() => onFilterChange({ ...filter, statusFilter: sf.value })}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all backdrop-blur-md flex items-center gap-1.5 border
+                ${isActive
+                  ? sf.activeClass
+                  : 'bg-[#1a1a2e]/80 text-white/60 border-white/5 hover:bg-white/10 hover:text-white/90'
+                }`}
+            >
+              {sf.dotClass && (
+                <span className={`w-2 h-2 rounded-full shadow-sm ${isActive ? sf.dotClass : 'bg-white/30'}`} />
+              )}
+              {sf.label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
