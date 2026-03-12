@@ -122,3 +122,17 @@ html, body, #root {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Custom Marker Cluster */
+.custom-cluster-icon {
+  background-color: #1a1a2e;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 50%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

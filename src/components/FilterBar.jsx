@@ -7,13 +7,22 @@ const STATUS_FILTERS = [
   { value: 'closed', label: '🔴 Closed' },
 ]
 
-export default function FilterBar({ onFilterChange, filter }) {
+export default function FilterBar({ onFilterChange, filter, restaurants = [] }) {
   const [searchFocused, setSearchFocused] = useState(false)
+
+  // Get up to 5 unique suggestions matching the search
+  const suggestions = filter.search
+    ? Array.from(new Set(
+        restaurants
+          .filter(r => r.name.toLowerCase().includes(filter.search.toLowerCase()))
+          .map(r => r.name)
+      )).slice(0, 5)
+    : []
 
   return (
     <div className="absolute top-16 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-auto">
       {/* Search */}
-      <div className="relative">
+      <div className="relative z-10">
         <input
           type="text"
           placeholder="Search restaurants..."
@@ -35,6 +44,25 @@ export default function FilterBar({ onFilterChange, filter }) {
           >
             ✕
           </button>
+        )}
+        
+        {/* Dropdown Suggestions */}
+        {searchFocused && filter.search && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a2e]/95 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-xl">
+            {suggestions.map((sug, i) => (
+              <button
+                key={i}
+                onMouseDown={(e) => {
+                  e.preventDefault() // prevent input blur
+                  onFilterChange({ ...filter, search: sug })
+                  setSearchFocused(false)
+                }}
+                className="w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-white/10 transition-colors border-b border-white/5 last:border-0"
+              >
+                {sug}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
