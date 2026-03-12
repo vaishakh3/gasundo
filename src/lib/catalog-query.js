@@ -20,6 +20,11 @@ export function buildCatalogIndex(restaurants = []) {
 
   for (const restaurant of restaurants) {
     const restaurantId = restaurant.restaurant_key
+
+    if (restaurantById[restaurantId]) {
+      continue
+    }
+
     const searchText = normalizeSearchText(
       `${restaurant.name} ${restaurant.brand || ''}`
     )

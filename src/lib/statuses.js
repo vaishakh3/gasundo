@@ -3,20 +3,12 @@ import 'server-only'
 import { unstable_cache } from 'next/cache'
 
 import { buildRestaurantKey, getRestaurantKey } from './status-key.js'
+import { isMissingRelationError } from './supabase-errors.js'
 import { getSupabaseAdmin, requireSupabaseAdmin } from './supabase-admin.js'
 
 const STATUS_SNAPSHOT_CACHE_TTL_SECONDS = 15
 export const STATUS_SNAPSHOT_CACHE_TAG = 'status-snapshot'
 const LATEST_STATUS_TABLE = 'restaurant_latest_status'
-
-function isMissingRelationError(error) {
-  return (
-    error?.code === '42P01' ||
-    error?.code === '42703' ||
-    /relation .* does not exist/i.test(error?.message || '') ||
-    /column .* does not exist/i.test(error?.message || '')
-  )
-}
 
 function toLatestStatusRecord(result) {
   if (!result || typeof result !== 'object') {

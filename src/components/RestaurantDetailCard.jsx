@@ -19,6 +19,7 @@ export default function RestaurantDetailCard({
   const [showComposer, setShowComposer] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const { text: timeAgoText, isStale } = useTimeAgo(statusData?.updated_at)
+  const isEmbedded = variant === 'embedded'
 
   useEffect(() => {
     setShowComposer(false)
@@ -30,9 +31,11 @@ export default function RestaurantDetailCard({
   const statusMeta = getStatusMeta(status)
   const confirmations = statusData?.confirmations || 0
   const hasKnownStatus = status !== 'unknown' && Boolean(statusData?.id)
-  const isPanel = variant === 'panel'
+  const isPanel = variant === 'panel' || isEmbedded
   const surfaceClass =
-    isPanel
+    isEmbedded
+      ? 'p-0'
+      : isPanel
       ? 'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,25,50,0.94),rgba(11,17,34,0.94))] p-5 shadow-[0_22px_52px_rgba(5,8,22,0.3)]'
       : 'rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,25,50,0.98),rgba(8,14,30,0.98))] px-5 pb-6 pt-2 shadow-[0_28px_70px_rgba(5,8,22,0.46)]'
   const headerClass = isPanel ? 'space-y-4' : 'space-y-4'
@@ -40,7 +43,9 @@ export default function RestaurantDetailCard({
     ? 'grid gap-4 grid-cols-[1.1fr_0.9fr]'
     : 'grid gap-3 sm:grid-cols-[1.25fr_0.95fr]'
   const secondaryGridClass = isPanel ? 'grid gap-3.5' : 'grid gap-3 sm:grid-cols-2'
-  const bodyClass = isPanel
+  const bodyClass = isEmbedded
+    ? 'mt-4 space-y-4'
+    : isPanel
     ? 'mt-5 space-y-4 border-t border-white/8 pt-4'
     : `space-y-4 ${stickyHeader ? 'pt-5' : ''}`
   const actionClass = isPanel ? 'flex flex-col gap-2.5' : 'flex flex-col gap-3 sm:flex-row'

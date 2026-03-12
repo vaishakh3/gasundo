@@ -4,6 +4,7 @@ import { Public_Sans, Space_Grotesk } from 'next/font/google'
 
 import AppProviders from '@/components/AppProviders'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
+import ViewportSync from '@/components/ViewportSync'
 
 const publicSans = Public_Sans({
   subsets: ['latin'],
@@ -88,6 +89,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${publicSans.variable} ${spaceGrotesk.variable} min-h-screen bg-[var(--ink-950)] font-sans text-[var(--text-primary)] antialiased`}
       >
+        <ViewportSync />
         <AppProviders>{children}</AppProviders>
         <ServiceWorkerRegister />
       </body>

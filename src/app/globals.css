@@ -13,6 +13,10 @@
   --text-muted: #93a4bd;
   --accent-ember: #ff7a45;
   --accent-gold: #ffd2a6;
+  --app-vh: 100dvh;
+  --app-vw: 100vw;
+  --app-top-offset: 0px;
+  --app-bottom-offset: 0px;
 }
 
 html,
@@ -27,7 +31,7 @@ body {
 }
 
 body {
-  min-height: 100dvh;
+  min-height: var(--app-vh);
   font-family: var(--font-public-sans), sans-serif;
   color: var(--text-primary);
 }
@@ -41,8 +45,16 @@ body {
 }
 
 .map-container {
-  height: 100dvh;
+  height: var(--app-vh);
   width: 100%;
+}
+
+.app-mobile-shell {
+  min-height: var(--app-vh);
+}
+
+.app-mobile-stage {
+  min-height: var(--app-vh);
 }
 
 .leaflet-container {
@@ -155,7 +167,9 @@ textarea {
 
 .locate-button {
   position: absolute;
-  bottom: max(116px, calc(env(safe-area-inset-bottom) + 104px));
+  bottom: calc(
+    var(--app-bottom-offset) + env(safe-area-inset-bottom) + 16px
+  );
   right: 16px;
   z-index: 1002;
   width: 56px;
@@ -260,6 +274,11 @@ textarea {
 
   .map-container {
     height: 100vh;
+  }
+
+  .app-mobile-shell,
+  .app-mobile-stage {
+    min-height: 100vh;
   }
 
   .locate-button {

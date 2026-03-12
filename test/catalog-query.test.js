@@ -123,6 +123,31 @@ test('selectSuggestions caps results at five unique labels', () => {
   )
 })
 
+test('buildCatalogIndex ignores duplicate restaurant keys', () => {
+  const duplicateRestaurants = [
+    restaurants[0],
+    {
+      ...restaurants[0],
+      id: 'duplicate-alpha',
+      lat: 9.900004,
+      lng: 76.200004,
+    },
+    restaurants[1],
+  ]
+
+  const catalogIndex = buildCatalogIndex(duplicateRestaurants)
+
+  assert.deepEqual(catalogIndex.restaurantIds, [
+    restaurants[0].restaurant_key,
+    restaurants[1].restaurant_key,
+  ])
+  assert.equal(catalogIndex.suggestionEntries.length, 2)
+  assert.equal(
+    catalogIndex.restaurantById[restaurants[0].restaurant_key].name,
+    restaurants[0].name
+  )
+})
+
 test('selectSummaryCounts stays stable across known and unknown statuses', () => {
   const catalogIndex = buildCatalogIndex(restaurants)
 

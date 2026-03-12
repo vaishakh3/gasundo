@@ -37,6 +37,40 @@ function MapController({ selectedRestaurant }) {
     }
   }, [selectedRestaurant, map])
 
+  useEffect(() => {
+    let frameId = 0
+
+    const syncMapSize = () => {
+      if (frameId) {
+        return
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0
+        map.invalidateSize({ pan: false })
+      })
+    }
+
+    const viewport = window.visualViewport
+
+    syncMapSize()
+    window.addEventListener('resize', syncMapSize)
+    window.addEventListener('orientationchange', syncMapSize)
+    viewport?.addEventListener('resize', syncMapSize)
+    viewport?.addEventListener('scroll', syncMapSize)
+
+    return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId)
+      }
+
+      window.removeEventListener('resize', syncMapSize)
+      window.removeEventListener('orientationchange', syncMapSize)
+      viewport?.removeEventListener('resize', syncMapSize)
+      viewport?.removeEventListener('scroll', syncMapSize)
+    }
+  }, [map])
+
   return null
 }
 

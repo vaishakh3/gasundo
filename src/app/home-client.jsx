@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 
 import FilterBar from '@/components/FilterBar'
+import DesktopBottomBar from '@/components/DesktopBottomBar'
 import RestaurantPanel from '@/components/RestaurantPanel'
 import RestaurantSheet from '@/components/RestaurantSheet'
 import {
@@ -282,8 +283,14 @@ export default function HomeClient({ initialRestaurants, initialError }) {
   }
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden">
-      <div className="relative min-h-screen lg:flex lg:h-full lg:min-h-0">
+    <div
+      className="app-mobile-shell lg:h-screen lg:overflow-hidden"
+      style={{ minHeight: 'var(--app-vh)' }}
+    >
+      <div
+        className="relative app-mobile-shell lg:flex lg:h-full lg:min-h-0"
+        style={{ minHeight: 'var(--app-vh)' }}
+      >
         <RestaurantPanel
           searchValue={search}
           onSearchChange={setSearch}
@@ -292,16 +299,11 @@ export default function HomeClient({ initialRestaurants, initialError }) {
           onStatusFilterChange={setStatusFilter}
           suggestions={suggestions}
           onSelectSuggestion={handleSelectSuggestion}
-          visibleRestaurantIds={visibleRestaurantIds}
-          restaurantById={catalogIndex.restaurantById}
-          statusMap={statusMap}
           totalCount={catalogIndex.restaurantIds.length}
           resultCount={visibleRestaurantIds.length}
           summaryCounts={summaryCounts}
           selectedRestaurant={selectedRestaurant}
-          selectedRestaurantId={selectedRestaurantId}
           selectedStatusData={selectedStatusData}
-          onSelectRestaurant={handleSelectRestaurant}
           onClearSelection={clearSelectedRestaurant}
           onStatusUpdate={handleStatusUpdate}
           onConfirm={handleConfirm}
@@ -310,7 +312,10 @@ export default function HomeClient({ initialRestaurants, initialError }) {
           isPending={isFiltering}
         />
 
-        <div className="relative min-h-[100dvh] flex-1 overflow-hidden lg:h-full lg:min-h-0">
+        <div
+          className="relative app-mobile-stage flex-1 overflow-hidden lg:h-full lg:min-h-0"
+          style={{ minHeight: 'var(--app-vh)' }}
+        >
           <div className="absolute inset-0">
             <MapView
               restaurantIds={mapRestaurantIds}
@@ -339,6 +344,12 @@ export default function HomeClient({ initialRestaurants, initialError }) {
             notice={notice}
             isPending={isFiltering}
             variant="mobile"
+          />
+
+          <DesktopBottomBar
+            resultCount={visibleRestaurantIds.length}
+            totalCount={catalogIndex.restaurantIds.length}
+            isPending={isFiltering}
           />
 
           <RestaurantSheet
