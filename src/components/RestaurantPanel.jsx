@@ -32,13 +32,14 @@ export default function RestaurantPanel({
             <div className="flex items-start justify-between gap-3">
               <div className="max-w-[220px]">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-slate-300/70">
-                  Live shortage map
+                  Kochi LPG shortage
                 </div>
                 <h1 className="mt-3 font-display text-[1.72rem] font-semibold leading-tight text-white">
-                  GasUndo Kochi
+                  GasUndo: Kochi restaurant status map
                 </h1>
                 <p className="mt-1 text-sm leading-5 text-slate-300/68">
-                  Fast scanning, quick confirmation, zero dead space.
+                  Find restaurants open in Kochi, limited-menu updates, and
+                  closures in real time.
                 </p>
               </div>
               <div className="rounded-[20px] border border-white/10 bg-white/5 px-3 py-3 text-right">

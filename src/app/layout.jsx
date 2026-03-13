@@ -6,6 +6,8 @@ import AppProviders from '@/components/AppProviders'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import ViewportSync from '@/components/ViewportSync'
 
+const siteUrl = new URL('https://gasundo.live')
+
 const publicSans = Public_Sans({
   subsets: ['latin'],
   variable: '--font-public-sans',
@@ -17,9 +19,80 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata = {
-  title: 'GasUndo Kochi - Live Restaurant Status Map',
+  metadataBase: siteUrl,
+  applicationName: 'GasUndo',
+  title: {
+    default: 'Restaurants Open in Kochi Today | GasUndo',
+    template: '%s | GasUndo',
+  },
   description:
-    'GasUndo Kochi is a crowdsourced live map showing which restaurants are open or closed during the LPG shortage in Kochi, India.',
+    'GasUndo is a live map showing restaurants open in Kochi during the LPG shortage. Find Kochi restaurant status, limited menu updates, and closures across Ernakulam, Kerala.',
+  keywords: [
+    'restaurants open in Kochi',
+    'Kochi restaurant status',
+    'Kochi LPG shortage restaurants',
+    'restaurants closed Kochi LPG shortage',
+    'restaurants open now Kochi',
+    'food places open Kochi',
+    'live map restaurants Kochi',
+    'Kochi restaurant availability',
+    'LPG shortage Kochi restaurants',
+    'restaurants running limited menu Kochi',
+    'restaurants affected by LPG shortage Kerala',
+    'which restaurants are open in Kochi today',
+    'Kochi food availability',
+    'restaurant closures Kochi LPG shortage',
+    'live map of restaurants open in Kochi',
+    'restaurants open during LPG shortage Kochi',
+    'which restaurants are open in Kochi right now',
+    'restaurants affected by LPG shortage in Kochi',
+    'map showing restaurants open in Kochi',
+  ],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'GasUndo | Restaurants Open in Kochi Today',
+    description:
+      'Track restaurants open in Kochi, limited menu updates, and closures caused by the LPG shortage across Ernakulam, Kerala.',
+    url: '/',
+    siteName: 'GasUndo',
+    locale: 'en_IN',
+    type: 'website',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'GasUndo live map of restaurants open in Kochi',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GasUndo | Restaurants Open in Kochi Today',
+    description:
+      'Live Kochi restaurant status map for open, limited-menu, and closed restaurants during the LPG shortage.',
+    images: ['/opengraph-image'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  category: 'food',
+  other: {
+    'geo.region': 'IN-KL',
+    'geo.placename': 'Kochi, Ernakulam, Kerala',
+    'geo.position': '9.9312;76.2673',
+    ICBM: '9.9312, 76.2673',
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -85,7 +158,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en-IN">
       <body
         className={`${publicSans.variable} ${spaceGrotesk.variable} min-h-screen bg-[var(--ink-950)] font-sans text-[var(--text-primary)] antialiased`}
       >
