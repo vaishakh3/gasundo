@@ -10,13 +10,15 @@ const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const RESTAURANTS_CACHE_TTL_SECONDS = 24 * 60 * 60
 export const RESTAURANTS_CACHE_TAG = 'restaurant-catalog'
 const DEFAULT_FETCH_TIMEOUT_MS = 8000
+const FOOD_AMENITY_PATTERN =
+  '^(restaurant|cafe|fast_food|food_court|bar|pub|ice_cream)$'
 
 const KOCHI_QUERY = `
 [out:json][timeout:25];
 (
-  node["amenity"~"restaurant|cafe|fast_food|food_court|bar|pub|ice_cream"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  way["amenity"~"restaurant|cafe|fast_food|food_court|bar|pub|ice_cream"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  relation["amenity"~"restaurant|cafe|fast_food|food_court|bar|pub|ice_cream"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
+  node["amenity"~"${FOOD_AMENITY_PATTERN}"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
+  way["amenity"~"${FOOD_AMENITY_PATTERN}"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
+  relation["amenity"~"${FOOD_AMENITY_PATTERN}"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
 
   node["shop"="bakery"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
   way["shop"="bakery"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
@@ -32,6 +34,37 @@ out center;
 function parseCoordinate(value) {
   const numericValue = Number(value)
   return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function normalizeAddressPart(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalizedValue = value.trim()
+  return normalizedValue ? normalizedValue : null
+}
+
+function buildRestaurantAddress(tags) {
+  if (!tags || typeof tags !== 'object') {
+    return null
+  }
+
+  const streetLine = [tags['addr:housenumber'], tags['addr:street']]
+    .map(normalizeAddressPart)
+    .filter(Boolean)
+    .join(' ')
+
+  const locationFallbacks = [
+    streetLine || null,
+    normalizeAddressPart(tags['addr:place']),
+    normalizeAddressPart(tags['addr:suburb']),
+    normalizeAddressPart(tags['addr:city']),
+    normalizeAddressPart(tags['addr:district']),
+    normalizeAddressPart(tags['addr:housename']),
+  ]
+
+  return locationFallbacks.find(Boolean) || null
 }
 
 async function fetchRestaurantsFromOverpass() {
@@ -65,7 +98,8 @@ async function fetchRestaurantsFromOverpass() {
     .map((element) => {
       const lat = parseCoordinate(element.lat ?? element.center?.lat)
       const lng = parseCoordinate(element.lon ?? element.center?.lon)
-      const name = element.tags.name
+      const tags = element.tags || {}
+      const name = tags.name
 
       return {
         id: `${element.type}:${element.id}`,
@@ -73,7 +107,8 @@ async function fetchRestaurantsFromOverpass() {
         osm_type: element.type,
         osm_id: String(element.id),
         name,
-        brand: element.tags.brand || null,
+        brand: tags.brand || null,
+        address: buildRestaurantAddress(tags),
         lat,
         lng,
       }

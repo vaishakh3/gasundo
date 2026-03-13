@@ -172,36 +172,145 @@ textarea {
   );
   right: 16px;
   z-index: 1002;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(10, 16, 31, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-height: 68px;
+  padding: 9px 18px 9px 10px;
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, rgba(18, 61, 85, 0.98), rgba(5, 25, 49, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
+  border: 1px solid rgba(126, 245, 255, 0.38);
   color: white;
-  font-size: 20px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 14px;
   cursor: pointer;
-  box-shadow: 0 22px 38px rgba(5, 8, 22, 0.36);
+  box-shadow:
+    0 24px 46px rgba(2, 10, 23, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 0 8px rgba(49, 208, 255, 0.14);
   backdrop-filter: blur(18px);
-  transition: all 0.2s ease;
+  overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .locate-button:hover {
-  background: rgba(15, 24, 46, 0.95);
-  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  border-color: rgba(161, 248, 255, 0.52);
+  box-shadow:
+    0 30px 52px rgba(2, 10, 23, 0.48),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 0 0 10px rgba(49, 208, 255, 0.18);
 }
 
 .locate-button:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
+}
+
+.locate-button:disabled {
+  cursor: wait;
+}
+
+.locate-button__halo {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at top left, rgba(143, 247, 255, 0.22), transparent 52%),
+    linear-gradient(135deg, rgba(30, 229, 226, 0.14), transparent 58%);
+  opacity: 0.98;
+  pointer-events: none;
+}
+
+.locate-button__pulse {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(137, 248, 255, 0.44);
+  transform: translateY(-50%);
+  box-shadow:
+    0 0 0 8px rgba(49, 208, 255, 0.08),
+    0 0 0 16px rgba(49, 208, 255, 0.04);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.locate-button__core {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 46px;
+  width: 46px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top, rgba(234, 255, 255, 0.96), rgba(178, 244, 255, 0.82) 42%, rgba(48, 208, 255, 0.92) 100%);
+  color: #062033;
+  box-shadow:
+    0 16px 30px rgba(16, 196, 255, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.24) inset;
+}
+
+.locate-button__icon {
+  height: 20px;
+  width: 20px;
+  filter: drop-shadow(0 2px 6px rgba(6, 32, 51, 0.2));
+}
+
+.locate-button__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.locate-button__eyebrow {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(166, 243, 255, 0.76);
+  white-space: nowrap;
+}
+
+.locate-button__label {
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 253, 255, 0.98);
+  white-space: nowrap;
+}
+
+.locate-button.is-locating .locate-button__core {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 1), rgba(199, 249, 255, 0.86) 45%, rgba(84, 222, 255, 0.88) 100%);
+}
+
+.locate-button.is-locating .locate-button__eyebrow {
+  color: rgba(208, 250, 255, 0.88);
+}
+
+.locate-button.is-locating .locate-button__label {
+  color: rgba(252, 254, 255, 1);
 }
 
 .locate-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.16);
-  border-top-color: rgba(255, 210, 166, 0.9);
+  border: 2px solid rgba(6, 32, 51, 0.16);
+  border-top-color: rgba(6, 32, 51, 0.86);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -282,7 +391,41 @@ textarea {
   }
 
   .locate-button {
-    bottom: 24px;
-    right: 24px;
+    bottom: 28px;
+    right: 28px;
+    min-height: 70px;
+    padding-right: 22px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .locate-button {
+    min-height: 66px;
+    min-width: 66px;
+    padding: 10px;
+    border-radius: 24px;
+    justify-content: center;
+    box-shadow:
+      0 20px 38px rgba(2, 10, 23, 0.48),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+      0 0 0 10px rgba(49, 208, 255, 0.16);
+  }
+
+  .locate-button__pulse {
+    left: 50%;
+    top: 50%;
+    height: 20px;
+    width: 20px;
+    transform: translate(-50%, -50%);
+  }
+
+  .locate-button__core {
+    height: 44px;
+    width: 44px;
+    border-radius: 15px;
+  }
+
+  .locate-button__content {
+    display: none;
   }
 }
