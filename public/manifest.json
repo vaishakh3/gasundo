@@ -1,24 +1,28 @@
 {
   "name": "GasUndo Kochi",
   "short_name": "GasUndo",
+  "id": "/",
   "description": "Crowdsourced live map of restaurants affected by LPG shortage in Kochi",
+  "scope": "/",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#1a1a2e",
-  "background_color": "#1a1a2e",
+  "display_override": ["standalone", "minimal-ui"],
+  "theme_color": "#090f20",
+  "background_color": "#090f20",
   "orientation": "portrait",
+  "lang": "en-IN",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icons/icon-192-opaque.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-512-opaque.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

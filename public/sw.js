@@ -1,11 +1,29 @@
-const CACHE_NAME = 'gasundo-v1'
+const CACHE_NAME = 'gasundo-v2'
 
-self.addEventListener('install', () => {
+self.addEventListener('install', (event) => {
   self.skipWaiting()
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll([
+        '/manifest.json',
+        '/icons/apple-touch-icon.png',
+        '/icons/icon-192-opaque.png',
+        '/icons/icon-512-opaque.png',
+      ])
+    ).catch(() => {})
+  )
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames
+          .filter((cacheName) => cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
+      )
+    ).then(() => self.clients.claim())
+  )
 })
 
 self.addEventListener('fetch', (event) => {
@@ -16,12 +34,15 @@ self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url)
   const isSameOrigin = requestUrl.origin === self.location.origin
   const isNavigation = event.request.mode === 'navigate'
-  const isStaticAsset =
+  const isImmutableStaticAsset =
+    isSameOrigin &&
+    requestUrl.pathname.startsWith('/_next/static/')
+  const isRuntimeAsset =
     isSameOrigin &&
     (
-      requestUrl.pathname.startsWith('/_next/static/') ||
       requestUrl.pathname.startsWith('/icons/') ||
       requestUrl.pathname.startsWith('/logos/') ||
+      requestUrl.pathname.startsWith('/splash/') ||
       requestUrl.pathname === '/manifest.json' ||
       requestUrl.pathname === '/default-marker.png'
     )
@@ -45,7 +66,26 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  if (!isStaticAsset) {
+  if (isRuntimeAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+          }
+
+          return response
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request)
+          return cached || fetch(event.request)
+        })
+    )
+    return
+  }
+
+  if (!isImmutableStaticAsset) {
     return
   }
 
