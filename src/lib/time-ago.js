@@ -1,5 +1,10 @@
-export function formatTimeAgo(dateString, nowTimestamp = Date.now()) {
+function isValidTimestamp(value) {
+  return Number.isFinite(value)
+}
+
+export function formatTimeAgo(dateString, nowTimestamp) {
   if (!dateString) return ''
+  if (!isValidTimestamp(nowTimestamp)) return 'recently'
 
   const now = new Date(nowTimestamp)
   const date = new Date(dateString)
@@ -17,8 +22,9 @@ export function formatTimeAgo(dateString, nowTimestamp = Date.now()) {
   return `${days}d ago`
 }
 
-export function isTimestampStale(dateString, nowTimestamp = Date.now()) {
+export function isTimestampStale(dateString, nowTimestamp) {
   if (!dateString) return false
+  if (!isValidTimestamp(nowTimestamp)) return false
 
   const now = new Date(nowTimestamp)
   const date = new Date(dateString)

@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
 import FilterBar from '@/components/FilterBar'
-import DesktopBottomBar from '@/components/DesktopBottomBar'
 import RestaurantPanel from '@/components/RestaurantPanel'
 import RestaurantSheet from '@/components/RestaurantSheet'
 import {
@@ -376,12 +375,6 @@ export default function HomeClient({ initialRestaurants, initialError }) {
             notice={notice}
             isPending={isFiltering}
             variant="mobile"
-          />
-
-          <DesktopBottomBar
-            resultCount={visibleRestaurantIds.length}
-            totalCount={catalogIndex.restaurantIds.length}
-            isPending={isFiltering}
           />
 
           <RestaurantSheet

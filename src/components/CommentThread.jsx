@@ -59,7 +59,7 @@ export default function CommentThread({
     statusId: null,
     value: '',
   })
-  const [nowTimestamp, setNowTimestamp] = useState(() => Date.now())
+  const [nowTimestamp, setNowTimestamp] = useState(null)
 
   const statusId = statusData?.id || null
   const restaurantKey = restaurant?.restaurant_key || statusData?.restaurant_key || null
@@ -67,11 +67,18 @@ export default function CommentThread({
   const draft = draftState.statusId === statusId ? draftState.value : ''
 
   useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setNowTimestamp(Date.now())
+    })
+
     const intervalId = window.setInterval(() => {
       setNowTimestamp(Date.now())
     }, 30000)
 
-    return () => window.clearInterval(intervalId)
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      window.clearInterval(intervalId)
+    }
   }, [])
 
   const commentsQuery = useQuery({
@@ -248,7 +255,7 @@ export default function CommentThread({
                     >
                       <span className="break-words">{comment.author_label}</span>
                       <span className="h-1 w-1 rounded-full bg-white/20" />
-                      <span>{comment.freshnessText || 'just now'}</span>
+                      <span>{comment.freshnessText || 'recently'}</span>
                     </div>
                     <p
                       className={`mt-2 break-words whitespace-pre-wrap text-slate-100/92 ${

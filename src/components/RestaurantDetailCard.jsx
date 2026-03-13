@@ -91,6 +91,8 @@ export default function RestaurantDetailCard({
   const viewerHasConfirmed = Boolean(statusData?.viewer_has_confirmed)
   const confirmDisabled = confirming || viewerIsAuthor || viewerHasConfirmed
   const isPanel = variant === 'panel' || isEmbedded
+  const address =
+    typeof restaurant.address === 'string' ? restaurant.address.trim() : ''
   const surfaceClass =
     isEmbedded
       ? 'p-0'
@@ -197,6 +199,15 @@ export default function RestaurantDetailCard({
               <h2 className={`font-display font-semibold leading-tight text-white ${isPanel ? 'text-[1.35rem]' : 'text-[1.7rem]'}`}>
                 {restaurant.name}
               </h2>
+              {address ? (
+                <p
+                  className={`mt-1 max-w-xl text-slate-300/78 ${
+                    isPanel ? 'text-[0.82rem] leading-5' : 'text-sm leading-6'
+                  }`}
+                >
+                  {address}
+                </p>
+              ) : null}
               {isPanel ? (
                 <p className="mt-1.5 max-w-[26ch] text-[0.8rem] leading-6 text-slate-300/62">
                   Latest crowd report for this place.
