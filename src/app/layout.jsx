@@ -6,6 +6,7 @@ import AppProviders from '@/components/AppProviders'
 import GlobalInfoButton from '@/components/GlobalInfoButton'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import ViewportSync from '@/components/ViewportSync'
+import { Analytics } from '@vercel/analytics/next'
 
 const siteUrl = new URL('https://gasundo.live')
 const appThemeColor = '#090f20'
@@ -174,6 +175,7 @@ export default function RootLayout({ children }) {
         <AppProviders>{children}</AppProviders>
         <GlobalInfoButton />
         <ServiceWorkerRegister />
+        <Analytics />
       </body>
     </html>
   )
