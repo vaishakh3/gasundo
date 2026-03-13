@@ -1,13 +1,15 @@
 import 'server-only'
 
 import { unstable_cache } from 'next/cache'
+import bundledRestaurants from '../data/restaurants-kochi.json' with { type: 'json' }
 
 import { KOCHI_BOUNDS, isWithinKochiBounds } from './constants.js'
 import { buildRestaurantKey } from './status-key.js'
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
+const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const RESTAURANTS_CACHE_TTL_SECONDS = 24 * 60 * 60
 export const RESTAURANTS_CACHE_TAG = 'restaurant-catalog'
+const DEFAULT_FETCH_TIMEOUT_MS = 8000
 
 const KOCHI_QUERY = `
 [out:json][timeout:25];
@@ -33,13 +35,22 @@ function parseCoordinate(value) {
 }
 
 async function fetchRestaurantsFromOverpass() {
-  const response = await fetch(OVERPASS_URL, {
+  const overpassUrl =
+    process.env.RESTAURANT_CATALOG_OVERPASS_URL || DEFAULT_OVERPASS_URL
+  const timeoutMs = Number(process.env.RESTAURANT_CATALOG_FETCH_TIMEOUT_MS)
+  const effectiveTimeoutMs =
+    Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? timeoutMs
+      : DEFAULT_FETCH_TIMEOUT_MS
+
+  const response = await fetch(overpassUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'text/plain;charset=UTF-8',
     },
     body: KOCHI_QUERY,
     cache: 'no-store',
+    signal: AbortSignal.timeout(effectiveTimeoutMs),
   })
 
   if (!response.ok) {
@@ -76,8 +87,29 @@ async function fetchRestaurantsFromOverpass() {
     .sort((left, right) => left.name.localeCompare(right.name))
 }
 
+async function loadRestaurantsCatalog() {
+  try {
+    const liveRestaurants = await fetchRestaurantsFromOverpass()
+
+    if (liveRestaurants.length > 0) {
+      return liveRestaurants
+    }
+
+    console.warn(
+      'Live restaurant catalog fetch returned no rows. Falling back to bundled snapshot.'
+    )
+  } catch (error) {
+    console.error(
+      'Failed to fetch the live restaurant catalog. Falling back to bundled snapshot:',
+      error
+    )
+  }
+
+  return bundledRestaurants
+}
+
 export const getRestaurants = unstable_cache(
-  fetchRestaurantsFromOverpass,
+  loadRestaurantsCatalog,
   ['restaurants'],
   {
     revalidate: RESTAURANTS_CACHE_TTL_SECONDS,
