@@ -3,6 +3,7 @@ import './globals.css'
 import { Public_Sans, Space_Grotesk } from 'next/font/google'
 
 import AppProviders from '@/components/AppProviders'
+import GlobalInfoButton from '@/components/GlobalInfoButton'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import ViewportSync from '@/components/ViewportSync'
 
@@ -171,6 +172,7 @@ export default function RootLayout({ children }) {
       >
         <ViewportSync />
         <AppProviders>{children}</AppProviders>
+        <GlobalInfoButton />
         <ServiceWorkerRegister />
       </body>
     </html>
