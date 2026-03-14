@@ -6,18 +6,18 @@ import {
   listRestaurantComments,
 } from '@/lib/comments'
 import {
-  getViewerIdentity,
-} from '@/lib/device-identity'
-import { getClientIp } from '@/lib/http'
-import {
-  enforceRateLimit,
-  getCommentCreateLimiter,
-} from '@/lib/ratelimit'
-import {
+  validateCommentCursor,
   validateCommentRestaurantKey,
-  validateCommentThreadStatusId,
   validateCreateCommentPayload,
 } from '@/lib/comment-validation'
+import { getClientIp } from '@/lib/http'
+import { enforceRateLimit, getCommentCreateLimiter } from '@/lib/ratelimit'
+import { buildRateLimitKey } from '@/lib/rate-limit-key'
+import {
+  AuthRequiredError,
+  getAuthenticatedViewer,
+  requireAuthenticatedViewer,
+} from '@/lib/supabase-auth'
 
 export const runtime = 'nodejs'
 
@@ -25,45 +25,34 @@ function jsonError(message, status, headers) {
   return NextResponse.json({ error: message }, { status, headers })
 }
 
-function getCommentLimiterKey(clientIp, viewerIdentityHash) {
-  return viewerIdentityHash ? `${viewerIdentityHash}:${clientIp}` : clientIp
-}
-
 export async function GET(request) {
   const url = new URL(request.url)
   const restaurantKeyValidation = validateCommentRestaurantKey(
     url.searchParams.get('restaurantKey')
   )
-  const statusIdValidation = validateCommentThreadStatusId(
-    url.searchParams.get('statusId')
-  )
+  const cursorValidation = validateCommentCursor(url.searchParams.get('cursor'))
+
+  if (restaurantKeyValidation.error) {
+    return jsonError('A valid restaurant key is required.', 400)
+  }
+
+  if (cursorValidation.error) {
+    return jsonError(cursorValidation.error, 400)
+  }
 
   try {
-    let restaurantKey = null
-
-    if (!restaurantKeyValidation.error) {
-      restaurantKey = restaurantKeyValidation.data
-    } else if (!statusIdValidation.error) {
-      const statusThread = await getStatusThreadById(statusIdValidation.data)
-
-      if (!statusThread?.restaurant_key) {
-        return jsonError('Comment thread not found.', 404)
+    const viewer = await getAuthenticatedViewer()
+    const page = await listRestaurantComments(
+      restaurantKeyValidation.data,
+      viewer?.identityKey || null,
+      {
+        cursor: cursorValidation.data,
       }
-
-      restaurantKey = statusThread.restaurant_key
-    } else {
-      return jsonError('A valid restaurant key or status thread is required.', 400)
-    }
-
-    const viewerIdentity = getViewerIdentity(request.headers)
-    const comments = await listRestaurantComments(
-      restaurantKey,
-      viewerIdentity?.identityHash || null
     )
 
-    return NextResponse.json({ comments }, { status: 200 })
+    return NextResponse.json(page, { status: 200 })
   } catch (error) {
-    console.error('Failed to load status comments:', error)
+    console.error('Failed to load restaurant comments:', error)
     return jsonError('Could not load comments right now.', 500)
   }
 }
@@ -83,10 +72,18 @@ export async function POST(request) {
     return jsonError(validation.error, 400)
   }
 
-  const viewerIdentity = getViewerIdentity(request.headers)
+  let viewer
 
-  if (!viewerIdentity) {
-    return jsonError('Refresh the page and try commenting again.', 400)
+  try {
+    viewer = await requireAuthenticatedViewer(
+      'Sign in with Google to post a comment.'
+    )
+  } catch (error) {
+    if (error instanceof AuthRequiredError) {
+      return jsonError(error.message, 401)
+    }
+
+    throw error
   }
 
   const limiter = getCommentCreateLimiter()
@@ -95,7 +92,7 @@ export async function POST(request) {
   try {
     const rateLimitResult = await enforceRateLimit(
       limiter,
-      getCommentLimiterKey(clientIp, viewerIdentity.identityHash)
+      buildRateLimitKey(clientIp, viewer.userId)
     )
 
     if (!rateLimitResult.success) {
@@ -105,7 +102,7 @@ export async function POST(request) {
       )
 
       return jsonError(
-        'Too many comments from this device right now. Please try again later.',
+        'Too many comments from this account right now. Please try again later.',
         429,
         { 'Retry-After': String(retryAfterSeconds) }
       )
@@ -130,8 +127,8 @@ export async function POST(request) {
       statusId: validation.data.status_id,
       restaurantKey: validation.data.restaurant_key,
       content: validation.data.content,
-      authorIdentityHash: viewerIdentity.identityHash,
-      authorLabel: viewerIdentity.label,
+      authorIdentityHash: viewer.identityKey,
+      authorLabel: viewer.label,
     })
 
     return NextResponse.json({ comment }, { status: 201 })

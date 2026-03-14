@@ -91,11 +91,12 @@ export default function UpdateStatusForm({ restaurant, onSubmit, onCancel }) {
         <>
           <label className="space-y-2">
             <span className="text-sm font-medium text-slate-200/90">
-              Add the first comment for this report
+              Add a quick note for this report
             </span>
             <textarea
               rows={3}
-              placeholder="Optional first comment, for example: no tandoor items or kitchen closing soon."
+              maxLength={2000}
+              placeholder="Optional note, for example: no tandoor items or kitchen closing soon."
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="min-h-28 w-full rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-300/35 focus:border-white/18 focus:outline-none focus:ring-2 focus:ring-white/12"

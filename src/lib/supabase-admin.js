@@ -2,26 +2,10 @@ import 'server-only'
 
 import { createClient } from '@supabase/supabase-js'
 
+import { readEnvValue } from './supabase-env.js'
+
 let supabaseAdmin
 let warnedFallbackClient = false
-
-function readEnvValue(...names) {
-  for (const name of names) {
-    const value = process.env[name]
-
-    if (typeof value !== 'string') {
-      continue
-    }
-
-    const normalized = value.trim().replace(/^"(.*)"$/, '$1')
-
-    if (normalized) {
-      return normalized
-    }
-  }
-
-  return null
-}
 
 export function getSupabaseAdmin() {
   if (supabaseAdmin !== undefined) {

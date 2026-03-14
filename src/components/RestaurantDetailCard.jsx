@@ -2,15 +2,13 @@
 
 import { useEffect, useState } from 'react'
 
+import { useAuth } from './AuthProvider'
 import CommentThread from './CommentThread'
 import UpdateStatusForm from './UpdateStatusForm'
 import { buildRestaurantShareUrl } from '@/lib/app-links'
 import useTimeAgo from '@/hooks/useTimeAgo'
 import { buildGoogleMapsPlaceUrl } from '@/lib/map-links'
-import { getRestaurantCommentsQueryKey } from '@/lib/query-keys'
 import { getStatusMeta } from '@/lib/status-ui'
-import { isUuid } from '@/lib/uuid'
-import { useQueryClient } from '@tanstack/react-query'
 
 function GoogleMapsIcon() {
   return (
@@ -70,7 +68,13 @@ export default function RestaurantDetailCard({
   variant = 'sheet',
   stickyHeader = false,
 }) {
-  const queryClient = useQueryClient()
+  const {
+    viewer,
+    isAuthenticated,
+    isReady: authReady,
+    isSigningIn,
+    signInWithGoogle,
+  } = useAuth()
   const [showComposer, setShowComposer] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const { text: timeAgoText, isStale } = useTimeAgo(statusData?.updated_at)
@@ -89,7 +93,8 @@ export default function RestaurantDetailCard({
   const hasKnownStatus = status !== 'unknown' && Boolean(statusData?.id)
   const viewerIsAuthor = Boolean(statusData?.viewer_is_author)
   const viewerHasConfirmed = Boolean(statusData?.viewer_has_confirmed)
-  const confirmDisabled = confirming || viewerIsAuthor || viewerHasConfirmed
+  const confirmDisabled =
+    !authReady || confirming || viewerIsAuthor || viewerHasConfirmed
   const isPanel = variant === 'panel' || isEmbedded
   const address =
     typeof restaurant.address === 'string' ? restaurant.address.trim() : ''
@@ -99,7 +104,7 @@ export default function RestaurantDetailCard({
       : isPanel
       ? 'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,25,50,0.94),rgba(11,17,34,0.94))] p-5 shadow-[0_22px_52px_rgba(5,8,22,0.3)]'
       : 'rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,25,50,0.98),rgba(8,14,30,0.98))] px-5 pb-6 pt-2 shadow-[0_28px_70px_rgba(5,8,22,0.46)]'
-  const headerClass = isPanel ? 'space-y-4' : 'space-y-4'
+  const headerClass = 'space-y-4'
   const primaryGridClass = isPanel
     ? 'grid gap-4 grid-cols-[1.1fr_0.9fr]'
     : 'grid gap-3 sm:grid-cols-[1.25fr_0.95fr]'
@@ -109,7 +114,12 @@ export default function RestaurantDetailCard({
     : isPanel
     ? 'mt-5 space-y-4 border-t border-white/8 pt-4'
     : `space-y-4 ${stickyHeader ? 'pt-5' : ''}`
-  const actionClass = isPanel ? 'flex flex-col gap-2.5' : 'flex flex-col gap-3 sm:flex-row'
+  const actionClass = isPanel
+    ? 'flex flex-col gap-2.5'
+    : 'flex flex-col gap-3 sm:flex-row'
+  const accountCopy = isAuthenticated
+    ? `Signed in as ${viewer?.label || 'Google user'}`
+    : 'Sign in with Google to report, confirm, and comment.'
 
   const handleShare = async () => {
     if (typeof window === 'undefined') {
@@ -150,11 +160,6 @@ export default function RestaurantDetailCard({
     try {
       await onStatusUpdate(updateData)
       setShowComposer(false)
-      if (restaurant?.restaurant_key && isUuid(statusData?.id)) {
-        queryClient.invalidateQueries({
-          queryKey: getRestaurantCommentsQueryKey(restaurant.restaurant_key),
-        })
-      }
       onNotice?.('Thanks for helping others find food.', 'success')
 
       if (navigator.vibrate) {
@@ -183,20 +188,39 @@ export default function RestaurantDetailCard({
     }
   }
 
+  const handleSignIn = async () => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      await signInWithGoogle(window.location.href)
+    } catch (error) {
+      onNotice?.(
+        error.message || 'Could not start Google sign-in right now.',
+        'error'
+      )
+    }
+  }
+
   return (
     <section className={surfaceClass}>
       <div
         className={`${headerClass} ${stickyHeader ? 'sticky top-0 z-10 -mx-5 -mt-2 rounded-b-[28px] border-b border-white/8 bg-[rgba(10,16,34,0.94)] px-5 pb-4 pt-3 backdrop-blur-2xl' : ''}`}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className={`min-w-0 ${isPanel ? 'max-w-[220px] space-y-2' : 'space-y-2'}`}>
+          <div
+            className={`min-w-0 ${isPanel ? 'max-w-[220px] space-y-2' : 'space-y-2'}`}
+          >
             {restaurant.brand ? (
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-300/72">
                 {restaurant.brand}
               </span>
             ) : null}
             <div>
-              <h2 className={`font-display font-semibold leading-tight text-white ${isPanel ? 'text-[1.35rem]' : 'text-[1.7rem]'}`}>
+              <h2
+                className={`font-display font-semibold leading-tight text-white ${isPanel ? 'text-[1.35rem]' : 'text-[1.7rem]'}`}
+              >
                 {restaurant.name}
               </h2>
               {address ? (
@@ -254,15 +278,21 @@ export default function RestaurantDetailCard({
         </div>
 
         <div className={primaryGridClass}>
-          <div className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'min-h-[152px] p-4' : 'p-4'}`}>
+          <div
+            className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'min-h-[152px] p-4' : 'p-4'}`}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className={isPanel ? 'space-y-2.5' : 'space-y-2'}>
-                <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.22em] ${statusMeta.badgeClass}`}>
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.22em] ${statusMeta.badgeClass}`}
+                >
                   <span className={`h-2.5 w-2.5 rounded-full ${statusMeta.dotClass}`} />
                   {statusMeta.label}
                 </span>
                 <div>
-                  <div className={`font-display font-semibold text-white ${isPanel ? 'text-lg' : 'text-xl'}`}>
+                  <div
+                    className={`font-display font-semibold text-white ${isPanel ? 'text-lg' : 'text-xl'}`}
+                  >
                     {statusMeta.detailLabel}
                   </div>
                   <div className={`${isPanel ? 'text-xs' : 'text-sm'} text-slate-300/72`}>
@@ -278,11 +308,15 @@ export default function RestaurantDetailCard({
             </div>
           </div>
 
-          <div className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'min-h-[152px] p-4' : 'p-4'}`}>
+          <div
+            className={`rounded-[22px] border border-white/10 bg-white/6 ${isPanel ? 'min-h-[152px] p-4' : 'p-4'}`}
+          >
             <div className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
               Freshness
             </div>
-            <div className={`mt-3.5 font-display font-semibold text-white ${isPanel ? 'text-[1.15rem]' : 'text-lg'}`}>
+            <div
+              className={`mt-3.5 font-display font-semibold text-white ${isPanel ? 'text-[1.15rem]' : 'text-lg'}`}
+            >
               {statusData?.updated_at ? timeAgoText : 'No recent report'}
             </div>
             <div className={`${isPanel ? 'mt-2 text-xs leading-6' : 'mt-1 text-sm'} text-slate-300/72`}>
@@ -300,7 +334,9 @@ export default function RestaurantDetailCard({
             <div className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
               Trust signal
             </div>
-            <div className={`mt-2.5 font-semibold text-white ${isPanel ? 'text-[1.02rem]' : 'text-lg'}`}>
+            <div
+              className={`mt-2.5 font-semibold text-white ${isPanel ? 'text-[1.02rem]' : 'text-lg'}`}
+            >
               {confirmations} {confirmations === 1 ? 'confirmation' : 'confirmations'}
             </div>
             <p className={`${isPanel ? 'mt-1.5 text-xs leading-6' : 'mt-1 text-sm'} text-slate-300/72`}>
@@ -312,47 +348,84 @@ export default function RestaurantDetailCard({
             <div className="text-[0.7rem] font-semibold uppercase tracking-[0.24em] text-slate-300/55">
               Thread
             </div>
-            <div className={`${isPanel ? 'mt-2.5 text-[0.82rem] leading-6' : 'mt-2 text-sm leading-6'} text-slate-200/88`}>
-              Comments stay with this place so diners can add context and vote useful tips up.
+            <div
+              className={`${isPanel ? 'mt-2.5 text-[0.82rem] leading-6' : 'mt-2 text-sm leading-6'} text-slate-200/88`}
+            >
+              Signed-in diners can add markdown tips, edit their own comments, and
+              vote useful updates up.
             </div>
           </div>
         </div>
 
         {showComposer ? (
-          <UpdateStatusForm restaurant={restaurant} onSubmit={handleSubmit} onCancel={() => setShowComposer(false)} />
+          <UpdateStatusForm
+            restaurant={restaurant}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowComposer(false)}
+          />
         ) : (
-          <div className={actionClass}>
-            {hasKnownStatus ? (
-              <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={confirmDisabled}
-                className={`flex-1 rounded-[18px] border border-white/10 bg-white/6 font-semibold text-slate-100 transition hover:border-white/18 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${
-                  isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
-                }`}
-              >
-                {confirming
-                  ? 'Confirming...'
-                  : viewerIsAuthor
-                    ? 'You reported this status'
-                    : viewerHasConfirmed
-                      ? 'Already confirmed'
-                      : 'Confirm this update'}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setShowComposer(true)}
-              className={`flex-1 rounded-[18px] bg-[linear-gradient(135deg,#ffd2a6,#ff7a45)] font-semibold text-slate-950 shadow-[0_18px_36px_rgba(255,122,69,0.26)] transition hover:brightness-105 ${
-                isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
-              }`}
-            >
-              {status === 'unknown' ? 'Report first update' : 'Report a newer status'}
-            </button>
-          </div>
+          <>
+            <div className="text-xs text-slate-300/58">{accountCopy}</div>
+            <div className={actionClass}>
+              {hasKnownStatus ? (
+                isAuthenticated ? (
+                  <button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={confirmDisabled}
+                    className={`flex-1 rounded-[18px] border border-white/10 bg-white/6 font-semibold text-slate-100 transition hover:border-white/18 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${
+                      isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
+                    }`}
+                  >
+                    {confirming
+                      ? 'Confirming...'
+                      : viewerIsAuthor
+                        ? 'You reported this status'
+                        : viewerHasConfirmed
+                          ? 'Already confirmed'
+                          : 'Confirm this update'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSignIn}
+                    disabled={!authReady || isSigningIn}
+                    className={`flex-1 rounded-[18px] border border-white/10 bg-white/6 font-semibold text-slate-100 transition hover:border-white/18 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${
+                      isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
+                    }`}
+                  >
+                    {isSigningIn ? 'Redirecting...' : 'Sign in to confirm'}
+                  </button>
+                )
+              ) : null}
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => setShowComposer(true)}
+                  className={`flex-1 rounded-[18px] bg-[linear-gradient(135deg,#ffd2a6,#ff7a45)] font-semibold text-slate-950 shadow-[0_18px_36px_rgba(255,122,69,0.26)] transition hover:brightness-105 ${
+                    isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
+                  }`}
+                >
+                  {status === 'unknown' ? 'Report first update' : 'Report a newer status'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSignIn}
+                  disabled={!authReady || isSigningIn}
+                  className={`flex-1 rounded-[18px] bg-[linear-gradient(135deg,#ffd2a6,#ff7a45)] font-semibold text-slate-950 shadow-[0_18px_36px_rgba(255,122,69,0.26)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55 ${
+                    isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
+                  }`}
+                >
+                  {isSigningIn ? 'Redirecting...' : 'Sign in to report'}
+                </button>
+              )}
+            </div>
+          </>
         )}
 
         <CommentThread
+          key={`${restaurant.restaurant_key}:${statusData?.id || 'none'}`}
           restaurant={restaurant}
           statusData={statusData}
           onNotice={onNotice}

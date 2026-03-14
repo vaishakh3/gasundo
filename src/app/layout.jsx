@@ -6,6 +6,7 @@ import AppProviders from '@/components/AppProviders'
 import GlobalInfoButton from '@/components/GlobalInfoButton'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import ViewportSync from '@/components/ViewportSync'
+import { getSupabasePublicConfig } from '@/lib/supabase-env'
 
 const siteUrl = new URL('https://gasundo.live')
 const appThemeColor = '#090f20'
@@ -165,13 +166,20 @@ export const viewport = {
 }
 
 export default function RootLayout({ children }) {
+  const supabaseConfig = getSupabasePublicConfig()
+
   return (
     <html lang="en-IN">
       <body
         className={`${publicSans.variable} ${spaceGrotesk.variable} min-h-screen bg-[var(--ink-950)] font-sans text-[var(--text-primary)] antialiased`}
       >
         <ViewportSync />
-        <AppProviders>{children}</AppProviders>
+        <AppProviders
+          supabaseUrl={supabaseConfig?.url || null}
+          supabaseAnonKey={supabaseConfig?.anonKey || null}
+        >
+          {children}
+        </AppProviders>
         <GlobalInfoButton />
         <ServiceWorkerRegister />
       </body>

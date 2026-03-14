@@ -1,5 +1,3 @@
-import { getDeviceRequestHeaders } from '@/lib/device-identity-client'
-
 async function parseResponse(response, fallbackMessage) {
   let payload = null
 
@@ -16,21 +14,20 @@ async function parseResponse(response, fallbackMessage) {
   return payload
 }
 
-export async function fetchStatusComments({ statusId, restaurantKey }) {
+export async function fetchRestaurantComments({ restaurantKey, cursor = null }) {
   const params = new URLSearchParams()
 
   if (restaurantKey) {
     params.set('restaurantKey', restaurantKey)
   }
 
-  if (statusId) {
-    params.set('statusId', statusId)
+  if (cursor) {
+    params.set('cursor', cursor)
   }
 
   const response = await fetch(`/api/comments?${params.toString()}`, {
     headers: {
       Accept: 'application/json',
-      ...getDeviceRequestHeaders(),
     },
     cache: 'no-store',
   })
@@ -40,7 +37,11 @@ export async function fetchStatusComments({ statusId, restaurantKey }) {
     'Could not load comments right now.'
   )
 
-  return payload.comments || []
+  return {
+    comments: payload.comments || [],
+    nextCursor: payload.nextCursor || null,
+    hasMore: Boolean(payload.hasMore),
+  }
 }
 
 export async function createComment({ status_id, restaurant_key, content }) {
@@ -48,7 +49,6 @@ export async function createComment({ status_id, restaurant_key, content }) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...getDeviceRequestHeaders(),
     },
     body: JSON.stringify({
       status_id,
@@ -68,7 +68,6 @@ export async function createComment({ status_id, restaurant_key, content }) {
 export async function upvoteComment(commentId) {
   const response = await fetch(`/api/comments/${commentId}/upvote`, {
     method: 'POST',
-    headers: getDeviceRequestHeaders(),
   })
 
   const payload = await parseResponse(
@@ -77,4 +76,29 @@ export async function upvoteComment(commentId) {
   )
 
   return payload.comment
+}
+
+export async function updateComment(commentId, content) {
+  const response = await fetch(`/api/comments/${commentId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ content }),
+  })
+
+  const payload = await parseResponse(
+    response,
+    'Could not update this comment right now.'
+  )
+
+  return payload.comment
+}
+
+export async function deleteComment(commentId) {
+  const response = await fetch(`/api/comments/${commentId}`, {
+    method: 'DELETE',
+  })
+
+  return parseResponse(response, 'Could not delete this comment right now.')
 }

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 
-import { getViewerIdentity } from '@/lib/device-identity'
 import { getClientIp } from '@/lib/http'
 import { enforceRateLimit, getStatusCreateLimiter } from '@/lib/ratelimit'
+import { buildRateLimitKey } from '@/lib/rate-limit-key'
+import {
+  AuthRequiredError,
+  requireAuthenticatedViewer,
+} from '@/lib/supabase-auth'
 import {
   applyViewerStatusState,
   createStatus,
@@ -27,8 +31,23 @@ export async function POST(request) {
   }
 
   const validation = validateCreateStatusPayload(payload)
+
   if (validation.error) {
     return jsonError(validation.error, 400)
+  }
+
+  let viewer
+
+  try {
+    viewer = await requireAuthenticatedViewer(
+      'Sign in with Google to report a status.'
+    )
+  } catch (error) {
+    if (error instanceof AuthRequiredError) {
+      return jsonError(error.message, 401)
+    }
+
+    throw error
   }
 
   const limiter = getStatusCreateLimiter()
@@ -37,7 +56,10 @@ export async function POST(request) {
   let rateLimitResult
 
   try {
-    rateLimitResult = await enforceRateLimit(limiter, clientIp)
+    rateLimitResult = await enforceRateLimit(
+      limiter,
+      buildRateLimitKey(clientIp, viewer.userId)
+    )
   } catch (error) {
     console.error('Status create rate limit configuration error:', error)
     return jsonError('Status updates are temporarily unavailable.', 500)
@@ -50,24 +72,23 @@ export async function POST(request) {
     )
 
     return jsonError(
-      'Too many updates from this network. Please try again later.',
+      'Too many updates from this account right now. Please try again later.',
       429,
       { 'Retry-After': String(retryAfterSeconds) }
     )
   }
 
   try {
-    const viewerIdentity = getViewerIdentity(request.headers)
     const status = await createStatus({
       ...validation.data,
-      authorIdentityHash: viewerIdentity?.identityHash || null,
-      authorLabel: viewerIdentity?.label || null,
+      authorIdentityHash: viewer.identityKey,
+      authorLabel: viewer.label,
     })
     revalidateTag(STATUS_SNAPSHOT_CACHE_TAG, 'max')
     return NextResponse.json(
       {
         status: applyViewerStatusState(status, {
-          viewer_is_author: Boolean(viewerIdentity),
+          viewer_is_author: true,
           viewer_has_confirmed: false,
         }),
       },

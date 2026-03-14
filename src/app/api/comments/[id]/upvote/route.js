@@ -2,21 +2,21 @@ import { NextResponse } from 'next/server'
 
 import { getCommentById, upvoteComment } from '@/lib/comments'
 import { validateCommentId } from '@/lib/comment-validation'
-import { getViewerIdentity } from '@/lib/device-identity'
 import { getClientIp } from '@/lib/http'
 import {
   enforceRateLimit,
   getCommentUpvoteLimiter,
 } from '@/lib/ratelimit'
+import { buildRateLimitKey } from '@/lib/rate-limit-key'
+import {
+  AuthRequiredError,
+  requireAuthenticatedViewer,
+} from '@/lib/supabase-auth'
 
 export const runtime = 'nodejs'
 
 function jsonError(message, status, headers) {
   return NextResponse.json({ error: message }, { status, headers })
-}
-
-function getVoteLimiterKey(clientIp, viewerIdentityHash) {
-  return viewerIdentityHash ? `${viewerIdentityHash}:${clientIp}` : clientIp
 }
 
 export async function POST(request, context) {
@@ -27,10 +27,18 @@ export async function POST(request, context) {
     return jsonError(validation.error, 400)
   }
 
-  const viewerIdentity = getViewerIdentity(request.headers)
+  let viewer
 
-  if (!viewerIdentity) {
-    return jsonError('Refresh the page and try upvoting again.', 400)
+  try {
+    viewer = await requireAuthenticatedViewer(
+      'Sign in with Google to upvote comments.'
+    )
+  } catch (error) {
+    if (error instanceof AuthRequiredError) {
+      return jsonError(error.message, 401)
+    }
+
+    throw error
   }
 
   const limiter = getCommentUpvoteLimiter()
@@ -39,7 +47,7 @@ export async function POST(request, context) {
   try {
     const rateLimitResult = await enforceRateLimit(
       limiter,
-      getVoteLimiterKey(clientIp, viewerIdentity.identityHash)
+      buildRateLimitKey(clientIp, viewer.userId)
     )
 
     if (!rateLimitResult.success) {
@@ -49,7 +57,7 @@ export async function POST(request, context) {
       )
 
       return jsonError(
-        'Too many upvotes from this device right now. Please try again later.',
+        'Too many upvotes from this account right now. Please try again later.',
         429,
         { 'Retry-After': String(retryAfterSeconds) }
       )
@@ -60,10 +68,7 @@ export async function POST(request, context) {
   }
 
   try {
-    const comment = await getCommentById(
-      validation.data,
-      viewerIdentity.identityHash
-    )
+    const comment = await getCommentById(validation.data, viewer.identityKey)
 
     if (!comment) {
       return jsonError('Comment not found.', 404)
@@ -73,14 +78,11 @@ export async function POST(request, context) {
       return jsonError('You cannot upvote your own comment.', 400)
     }
 
-    await upvoteComment(validation.data, viewerIdentity.identityHash)
+    await upvoteComment(validation.data, viewer.identityKey)
 
     return NextResponse.json(
       {
-        comment: await getCommentById(
-          validation.data,
-          viewerIdentity.identityHash
-        ),
+        comment: await getCommentById(validation.data, viewer.identityKey),
       },
       { status: 200 }
     )

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 
-import { getViewerIdentity } from '@/lib/device-identity'
 import { getClientIp } from '@/lib/http'
 import { enforceRateLimit, getStatusConfirmLimiter } from '@/lib/ratelimit'
+import { buildRateLimitKey } from '@/lib/rate-limit-key'
+import {
+  AuthRequiredError,
+  requireAuthenticatedViewer,
+} from '@/lib/supabase-auth'
 import {
   applyViewerStatusState,
   confirmStatus,
@@ -20,10 +24,6 @@ function jsonError(message, status, headers) {
   return NextResponse.json({ error: message }, { status, headers })
 }
 
-function getConfirmLimiterKey(clientIp, viewerIdentityHash) {
-  return viewerIdentityHash ? `${viewerIdentityHash}:${clientIp}` : clientIp
-}
-
 export async function POST(request, context) {
   const params = await Promise.resolve(context.params)
   const validation = validateStatusId(params?.id)
@@ -32,10 +32,18 @@ export async function POST(request, context) {
     return jsonError(validation.error, 400)
   }
 
-  const viewerIdentity = getViewerIdentity(request.headers)
+  let viewer
 
-  if (!viewerIdentity) {
-    return jsonError('Refresh the page and try confirming again.', 400)
+  try {
+    viewer = await requireAuthenticatedViewer(
+      'Sign in with Google to confirm a status.'
+    )
+  } catch (error) {
+    if (error instanceof AuthRequiredError) {
+      return jsonError(error.message, 401)
+    }
+
+    throw error
   }
 
   const limiter = getStatusConfirmLimiter()
@@ -46,7 +54,7 @@ export async function POST(request, context) {
   try {
     rateLimitResult = await enforceRateLimit(
       limiter,
-      getConfirmLimiterKey(clientIp, viewerIdentity.identityHash)
+      buildRateLimitKey(clientIp, viewer.userId)
     )
   } catch (error) {
     console.error('Status confirm rate limit configuration error:', error)
@@ -60,7 +68,7 @@ export async function POST(request, context) {
     )
 
     return jsonError(
-      'Too many confirmations from this network. Please try again later.',
+      'Too many confirmations from this account right now. Please try again later.',
       429,
       { 'Retry-After': String(retryAfterSeconds) }
     )
@@ -69,7 +77,7 @@ export async function POST(request, context) {
   try {
     const viewerStateByStatusId = await getViewerStatusState(
       [validation.data],
-      viewerIdentity.identityHash
+      viewer.identityKey
     )
     const viewerState = viewerStateByStatusId.get(validation.data)
 
@@ -83,12 +91,12 @@ export async function POST(request, context) {
 
     if (viewerState.viewer_has_confirmed) {
       return jsonError(
-        'You already confirmed this update from this device.',
+        'You already confirmed this update from your account.',
         400
       )
     }
 
-    const status = await confirmStatus(validation.data, viewerIdentity.identityHash)
+    const status = await confirmStatus(validation.data, viewer.identityKey)
     revalidateTag(STATUS_SNAPSHOT_CACHE_TAG, 'max')
     return NextResponse.json(
       {

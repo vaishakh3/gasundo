@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
+import { useAuth } from '@/components/AuthProvider'
 import FilterBar from '@/components/FilterBar'
 import RestaurantPanel from '@/components/RestaurantPanel'
 import RestaurantSheet from '@/components/RestaurantSheet'
@@ -15,7 +16,10 @@ import {
   selectSummaryCounts,
   selectVisibleRestaurantIds,
 } from '@/lib/catalog-query'
-import { CATALOG_QUERY_KEY, STATUS_SNAPSHOT_QUERY_KEY } from '@/lib/query-keys'
+import {
+  CATALOG_QUERY_KEY,
+  getStatusSnapshotQueryKey,
+} from '@/lib/query-keys'
 import { useQueryStore } from '@/store/query-store'
 import { fetchCatalog } from '@/services/catalogService'
 import { fetchStatusSnapshot } from '@/services/statusSnapshotService'
@@ -49,6 +53,7 @@ function mergeStatusIntoSnapshot(snapshot, status) {
 export default function HomeClient({ initialRestaurants, initialError }) {
   const queryClient = useQueryClient()
   const hasHydratedSharedRestaurantRef = useRef(false)
+  const { viewer, isReady: authReady } = useAuth()
   const search = useQueryStore((state) => state.search)
   const statusFilter = useQueryStore((state) => state.statusFilter)
   const selectedRestaurantId = useQueryStore(
@@ -67,6 +72,18 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     initialError ? { tone: 'error', message: initialError, id: 'initial-error' } : null
   )
   const deferredSearch = useDeferredValue(search)
+  const viewerScope = viewer?.userId || 'guest'
+  const statusSnapshotQueryKey = useMemo(
+    () => getStatusSnapshotQueryKey(viewerScope),
+    [viewerScope]
+  )
+  const showNotice = (message, tone = 'neutral') => {
+    setNotice({
+      id: Date.now(),
+      message,
+      tone,
+    })
+  }
 
   const catalogQuery = useQuery({
     queryKey: CATALOG_QUERY_KEY,
@@ -81,12 +98,11 @@ export default function HomeClient({ initialRestaurants, initialError }) {
   })
 
   const statusSnapshotQuery = useQuery({
-    queryKey: STATUS_SNAPSHOT_QUERY_KEY,
+    queryKey: statusSnapshotQueryKey,
     queryFn: fetchStatusSnapshot,
     initialData: EMPTY_STATUS_SNAPSHOT,
-    refetchInterval: 15000,
-    refetchIntervalInBackground: true,
-    staleTime: 0,
+    enabled: authReady,
+    staleTime: 30 * 1000,
   })
 
   useEffect(() => {
@@ -100,6 +116,26 @@ export default function HomeClient({ initialRestaurants, initialError }) {
 
     return () => window.clearTimeout(timeoutId)
   }, [notice])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const currentUrl = new URL(window.location.href)
+    const authError = currentUrl.searchParams.get('authError')
+
+    if (!authError) {
+      return
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      showNotice(authError, 'error')
+    })
+    currentUrl.searchParams.delete('authError')
+    window.history.replaceState({}, '', currentUrl)
+    return () => window.cancelAnimationFrame(frameId)
+  }, [])
 
   const restaurants = useMemo(
     () => catalogQuery.data?.restaurants || [],
@@ -153,6 +189,42 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     }
   }, [catalogIndex, setSelectedRestaurantId])
 
+  useEffect(() => {
+    if (typeof document === 'undefined' || !authReady) {
+      return undefined
+    }
+
+    const refreshSnapshot = () => {
+      if (document.visibilityState !== 'visible') {
+        return
+      }
+
+      queryClient.invalidateQueries({ queryKey: statusSnapshotQueryKey })
+    }
+
+    document.addEventListener('visibilitychange', refreshSnapshot)
+    return () => document.removeEventListener('visibilitychange', refreshSnapshot)
+  }, [authReady, queryClient, statusSnapshotQueryKey])
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !hasHydratedSharedRestaurantRef.current
+    ) {
+      return
+    }
+
+    const currentUrl = new URL(window.location.href)
+
+    if (selectedRestaurantId) {
+      currentUrl.searchParams.set('restaurant', selectedRestaurantId)
+    } else {
+      currentUrl.searchParams.delete('restaurant')
+    }
+
+    window.history.replaceState({}, '', currentUrl)
+  }, [selectedRestaurantId])
+
   const queryState = useMemo(
     () => ({
       search: deferredSearch,
@@ -188,25 +260,17 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     [selectedRestaurantId, visibleRestaurantIds]
   )
 
-  const showNotice = (message, tone = 'neutral') => {
-    setNotice({
-      id: Date.now(),
-      message,
-      tone,
-    })
-  }
-
   const updateStatusMutation = useMutation({
     mutationFn: updateStatusRequest,
     onMutate: async (nextStatus) => {
-      await queryClient.cancelQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
+      await queryClient.cancelQueries({ queryKey: statusSnapshotQueryKey })
 
       const previousSnapshot =
-        queryClient.getQueryData(STATUS_SNAPSHOT_QUERY_KEY) ||
+        queryClient.getQueryData(statusSnapshotQueryKey) ||
         EMPTY_STATUS_SNAPSHOT
 
       queryClient.setQueryData(
-        STATUS_SNAPSHOT_QUERY_KEY,
+        statusSnapshotQueryKey,
         mergeStatusIntoSnapshot(previousSnapshot, {
           id: previousSnapshot.statuses[nextStatus.restaurant_key]?.id || `optimistic:${nextStatus.restaurant_key}`,
           restaurant_key: nextStatus.restaurant_key,
@@ -229,35 +293,32 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     },
     onError: (_error, _variables, context) => {
       if (context?.previousSnapshot) {
-        queryClient.setQueryData(
-          STATUS_SNAPSHOT_QUERY_KEY,
-          context.previousSnapshot
-        )
+        queryClient.setQueryData(statusSnapshotQueryKey, context.previousSnapshot)
       }
     },
     onSuccess: (status) => {
       queryClient.setQueryData(
-        STATUS_SNAPSHOT_QUERY_KEY,
+        statusSnapshotQueryKey,
         (currentSnapshot) =>
           mergeStatusIntoSnapshot(currentSnapshot || EMPTY_STATUS_SNAPSHOT, status)
       )
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: statusSnapshotQueryKey })
     },
   })
 
   const confirmStatusMutation = useMutation({
     mutationFn: (statusData) => confirmStatusRequest(statusData.id),
     onMutate: async (statusData) => {
-      await queryClient.cancelQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
+      await queryClient.cancelQueries({ queryKey: statusSnapshotQueryKey })
 
       const previousSnapshot =
-        queryClient.getQueryData(STATUS_SNAPSHOT_QUERY_KEY) ||
+        queryClient.getQueryData(statusSnapshotQueryKey) ||
         EMPTY_STATUS_SNAPSHOT
 
       queryClient.setQueryData(
-        STATUS_SNAPSHOT_QUERY_KEY,
+        statusSnapshotQueryKey,
         mergeStatusIntoSnapshot(previousSnapshot, {
           ...statusData,
           confirmations: Number(statusData.confirmations || 0) + 1,
@@ -269,21 +330,18 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     },
     onError: (_error, _variables, context) => {
       if (context?.previousSnapshot) {
-        queryClient.setQueryData(
-          STATUS_SNAPSHOT_QUERY_KEY,
-          context.previousSnapshot
-        )
+        queryClient.setQueryData(statusSnapshotQueryKey, context.previousSnapshot)
       }
     },
     onSuccess: (status) => {
       queryClient.setQueryData(
-        STATUS_SNAPSHOT_QUERY_KEY,
+        statusSnapshotQueryKey,
         (currentSnapshot) =>
           mergeStatusIntoSnapshot(currentSnapshot || EMPTY_STATUS_SNAPSHOT, status)
       )
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: STATUS_SNAPSHOT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: statusSnapshotQueryKey })
     },
   })
 

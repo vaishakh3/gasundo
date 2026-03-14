@@ -1,4 +1,8 @@
 import { isUuid } from './uuid.js'
+import {
+  decodeCommentCursor,
+} from './comment-cursor.js'
+import { validateCommentMarkdown } from './comment-markdown.js'
 
 export function validateCreateCommentPayload(payload) {
   if (!payload || typeof payload !== 'object') {
@@ -21,22 +25,35 @@ export function validateCreateCommentPayload(payload) {
     return { error: 'Restaurant key must be 220 characters or fewer.' }
   }
 
-  const content =
-    typeof payload.content === 'string' ? payload.content.trim() : ''
+  const markdownValidation = validateCommentMarkdown(payload.content)
 
-  if (!content) {
-    return { error: 'Comment text is required.' }
-  }
-
-  if (content.length > 500) {
-    return { error: 'Comment must be 500 characters or fewer.' }
+  if (markdownValidation.error) {
+    return markdownValidation
   }
 
   return {
     data: {
       status_id: statusId,
       restaurant_key: restaurantKey,
-      content,
+      content: markdownValidation.data.content,
+    },
+  }
+}
+
+export function validateUpdateCommentPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return { error: 'Invalid request body.' }
+  }
+
+  const markdownValidation = validateCommentMarkdown(payload.content)
+
+  if (markdownValidation.error) {
+    return markdownValidation
+  }
+
+  return {
+    data: {
+      content: markdownValidation.data.content,
     },
   }
 }
@@ -69,4 +86,18 @@ export function validateCommentRestaurantKey(value) {
   }
 
   return { data: restaurantKey }
+}
+
+export function validateCommentCursor(value) {
+  if (value == null || value === '') {
+    return { data: null }
+  }
+
+  const cursor = decodeCommentCursor(value)
+
+  if (!cursor) {
+    return { error: 'Invalid comment cursor.' }
+  }
+
+  return { data: cursor }
 }

@@ -2,7 +2,6 @@ import 'server-only'
 
 import { unstable_cache } from 'next/cache'
 
-import { createStatusComment } from './comments.js'
 import { buildRestaurantKey, getRestaurantKey } from './status-key.js'
 import { isMissingRelationError } from './supabase-errors.js'
 import { getSupabaseAdmin, requireSupabaseAdmin } from './supabase-admin.js'
@@ -14,7 +13,7 @@ const SELF_CONFIRMATION_ERROR = 'STATUS_SELF_CONFIRMATION_NOT_ALLOWED'
 const ALREADY_CONFIRMED_ERROR = 'STATUS_ALREADY_CONFIRMED'
 
 export class StatusAlreadyConfirmedError extends Error {
-  constructor(message = 'You already confirmed this update from this device.') {
+  constructor(message = 'You already confirmed this update from your account.') {
     super(message)
     this.name = 'StatusAlreadyConfirmedError'
   }
@@ -314,7 +313,6 @@ export async function createStatus({
   status,
   note,
   authorIdentityHash = null,
-  authorLabel = null,
 }) {
   const supabase = requireSupabaseAdmin()
 
@@ -328,19 +326,6 @@ export async function createStatus({
     author_identity_hash: authorIdentityHash,
     confirmations: 1,
   })
-
-  if (note && authorIdentityHash && authorLabel) {
-    await createStatusComment({
-      statusId: createdStatus.id,
-      restaurantKey:
-        createdStatus.restaurant_key ||
-        restaurant_key ||
-        buildRestaurantKey({ restaurant_name, lat, lng }),
-      content: note,
-      authorIdentityHash,
-      authorLabel,
-    })
-  }
 
   return upsertLatestStatusProjection(supabase, createdStatus)
 }
