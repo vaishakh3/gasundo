@@ -53,6 +53,24 @@ export default function AboutPage() {
                 by the roadside. Small acts of mapping make local tools like
                 GasUndo more useful for everyone.
               </p>
+              <p>
+                If you are new to OpenStreetMap, this short walkthrough shows
+                how to add and edit places properly.
+              </p>
+            </div>
+
+            <div className="mt-5 overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/40 shadow-[0_18px_42px_rgba(5,8,22,0.3)]">
+              <div className="aspect-video">
+                <iframe
+                  className="h-full w-full"
+                  src="https://www.youtube.com/embed/Ir-3K0pjwOI"
+                  title="How to map new places in OpenStreetMap"
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              </div>
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
