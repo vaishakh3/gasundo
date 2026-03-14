@@ -58,6 +58,17 @@ function ShareIcon() {
   )
 }
 
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+      <path
+        d="M10.53 5.47a.75.75 0 0 1 0 1.06L5.81 11.25H20a.75.75 0 0 1 0 1.5H5.81l4.72 4.72a.75.75 0 1 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
 export default function RestaurantDetailCard({
   restaurant,
   statusData,
@@ -119,7 +130,9 @@ export default function RestaurantDetailCard({
     : 'flex flex-col gap-3 sm:flex-row'
   const accountCopy = isAuthenticated
     ? `Signed in as ${viewer?.label || 'Google user'}`
-    : 'Sign in with Google to report, confirm, and comment.'
+    : hasKnownStatus
+    ? 'Sign in once to confirm this update, report a newer status, and comment below.'
+    : 'Sign in once to report the first update and join the comments below.'
 
   const handleShare = async () => {
     if (typeof window === 'undefined') {
@@ -269,9 +282,11 @@ export default function RestaurantDetailCard({
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-0.5 shrink-0 rounded-full border border-white/10 bg-white/6 px-3.5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-200/75 transition hover:border-white/18 hover:bg-white/10 hover:text-white"
+                aria-label="Back to map"
+                title="Back to map"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/6 text-white transition hover:border-white/18 hover:bg-white/10 hover:text-white"
               >
-                Back
+                <BackIcon />
               </button>
             ) : null}
           </div>
@@ -367,8 +382,9 @@ export default function RestaurantDetailCard({
           <>
             <div className="text-xs text-slate-300/58">{accountCopy}</div>
             <div className={actionClass}>
-              {hasKnownStatus ? (
-                isAuthenticated ? (
+              {isAuthenticated ? (
+                <>
+                  {hasKnownStatus ? (
                   <button
                     type="button"
                     onClick={handleConfirm}
@@ -385,29 +401,17 @@ export default function RestaurantDetailCard({
                           ? 'Already confirmed'
                           : 'Confirm this update'}
                   </button>
-                ) : (
+                  ) : null}
                   <button
                     type="button"
-                    onClick={handleSignIn}
-                    disabled={!authReady || isSigningIn}
-                    className={`flex-1 rounded-[18px] border border-white/10 bg-white/6 font-semibold text-slate-100 transition hover:border-white/18 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    onClick={() => setShowComposer(true)}
+                    className={`flex-1 rounded-[18px] bg-[linear-gradient(135deg,#ffd2a6,#ff7a45)] font-semibold text-slate-950 shadow-[0_18px_36px_rgba(255,122,69,0.26)] transition hover:brightness-105 ${
                       isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
                     }`}
                   >
-                    {isSigningIn ? 'Redirecting...' : 'Sign in to confirm'}
+                    {status === 'unknown' ? 'Report first update' : 'Report a newer status'}
                   </button>
-                )
-              ) : null}
-              {isAuthenticated ? (
-                <button
-                  type="button"
-                  onClick={() => setShowComposer(true)}
-                  className={`flex-1 rounded-[18px] bg-[linear-gradient(135deg,#ffd2a6,#ff7a45)] font-semibold text-slate-950 shadow-[0_18px_36px_rgba(255,122,69,0.26)] transition hover:brightness-105 ${
-                    isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
-                  }`}
-                >
-                  {status === 'unknown' ? 'Report first update' : 'Report a newer status'}
-                </button>
+                </>
               ) : (
                 <button
                   type="button"
@@ -417,7 +421,7 @@ export default function RestaurantDetailCard({
                     isPanel ? 'px-4 py-3 text-[0.92rem]' : 'px-4 py-4 text-sm'
                   }`}
                 >
-                  {isSigningIn ? 'Redirecting...' : 'Sign in to report'}
+                  {isSigningIn ? 'Redirecting...' : 'Sign in with Google'}
                 </button>
               )}
             </div>

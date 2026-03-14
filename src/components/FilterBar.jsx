@@ -5,6 +5,20 @@ import { useState } from 'react'
 import NoticeBanner from './NoticeBanner'
 import { STATUS_FILTERS, STATUS_META } from '@/lib/status-ui'
 
+function ClearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+      <path
+        d="m7.28 7.22 9.5 9.5m0-9.5-9.5 9.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}
+
 function getFilterCount(value, totalCount, summaryCounts) {
   if (value === 'all') return totalCount
   return summaryCounts[value] || 0
@@ -52,11 +66,7 @@ export default function FilterBar({
 
   const isMobile = variant === 'mobile'
   const usesGridFilterLayout = isMobile || variant === 'panel'
-  const searchInputPaddingClass = searchValue
-    ? isMobile
-      ? 'pr-14'
-      : 'pr-24'
-    : 'pr-4'
+  const searchInputPaddingClass = searchValue ? 'pr-14' : 'pr-4'
   const filterContainerClass = usesGridFilterLayout
     ? `${variant === 'panel' ? 'mt-2' : 'mt-2.5'} grid grid-cols-2 gap-1.5`
     : `${variant === 'panel' ? 'mt-2' : 'mt-2.5'} flex gap-2 overflow-x-auto no-scrollbar`
@@ -115,13 +125,10 @@ export default function FilterBar({
               type="button"
               onClick={onClearSearch}
               aria-label="Clear search"
-              className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/6 text-slate-300/72 transition hover:border-white/16 hover:bg-white/10 hover:text-white ${
-                isMobile
-                  ? 'flex h-8 w-8 items-center justify-center text-lg leading-none'
-                  : 'px-2 py-1 text-xs font-semibold uppercase tracking-[0.2em]'
-              }`}
+              title="Clear search"
+              className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-white/6 text-slate-300/72 transition hover:border-white/16 hover:bg-white/10 hover:text-white"
             >
-              {isMobile ? <span aria-hidden="true">×</span> : 'Clear'}
+              <ClearIcon />
             </button>
           ) : null}
 

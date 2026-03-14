@@ -17,6 +17,7 @@
   --app-vw: 100vw;
   --app-top-offset: 0px;
   --app-bottom-offset: 0px;
+  --app-floating-bottom-offset: 0px;
 }
 
 html,
@@ -168,7 +169,7 @@ textarea {
 .locate-button {
   position: absolute;
   bottom: calc(
-    var(--app-bottom-offset) + env(safe-area-inset-bottom) + 16px
+    var(--app-floating-bottom-offset) + env(safe-area-inset-bottom) + 16px
   );
   right: 16px;
   z-index: 1002;

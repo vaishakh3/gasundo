@@ -49,7 +49,7 @@ export default function ZoomControl() {
 
   return (
     <div
-      className="absolute right-4 bottom-[calc(var(--app-bottom-offset)+env(safe-area-inset-bottom)+96px)] z-[1002] flex flex-col gap-2.5 lg:right-7 lg:bottom-[124px]"
+      className="absolute right-4 bottom-[calc(var(--app-floating-bottom-offset)+env(safe-area-inset-bottom)+96px)] z-[1002] flex flex-col gap-2.5 lg:right-7 lg:bottom-[124px]"
       role="group"
       aria-label="Map zoom controls"
     >

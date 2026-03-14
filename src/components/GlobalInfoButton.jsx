@@ -38,7 +38,7 @@ export default function GlobalInfoButton() {
       href={isAboutPage ? '/' : '/about'}
       aria-label={isAboutPage ? 'Back to map' : 'About GasUndo'}
       title={isAboutPage ? 'Back to map' : 'About GasUndo'}
-      className="fixed bottom-[calc(var(--app-bottom-offset)+env(safe-area-inset-bottom)+18px)] left-4 z-[1205] flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(13,19,38,0.94),rgba(9,15,31,0.92))] text-slate-100 shadow-[0_18px_38px_rgba(5,8,22,0.3)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[rgba(255,210,166,0.34)] hover:text-white lg:bottom-7 lg:left-7"
+      className="fixed bottom-[calc(var(--app-floating-bottom-offset)+env(safe-area-inset-bottom)+18px)] left-4 z-[1205] flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(13,19,38,0.94),rgba(9,15,31,0.92))] text-slate-100 shadow-[0_18px_38px_rgba(5,8,22,0.3)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[rgba(255,210,166,0.34)] hover:text-white lg:bottom-7 lg:left-7"
     >
       {isAboutPage ? <BackIcon /> : <InfoIcon />}
     </Link>

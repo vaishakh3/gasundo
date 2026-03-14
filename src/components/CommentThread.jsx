@@ -42,7 +42,7 @@ function UpvoteIcon({ active = false, busy = false }) {
 
 function getVoteButtonLabel(comment, isVoting, isAuthenticated) {
   if (!isAuthenticated) {
-    return 'Sign in with Google to upvote comments'
+    return 'Sign in above to upvote comments'
   }
 
   if (isVoting) {
@@ -74,7 +74,7 @@ export default function CommentThread({
   compact = false,
 }) {
   const queryClient = useQueryClient()
-  const { viewer, isAuthenticated, isReady, isSigningIn, signInWithGoogle, signOut } =
+  const { viewer, isAuthenticated, isReady, signInWithGoogle, signOut } =
     useAuth()
   const sectionRef = useRef(null)
   const [draftState, setDraftState] = useState({
@@ -350,7 +350,7 @@ export default function CommentThread({
   const authSummary =
     isAuthenticated && viewer
       ? `Signed in as ${viewer.label}`
-      : 'Sign in with Google to post, edit, delete, and upvote comments.'
+      : 'Comments stay public to read. Sign in above to post, edit, delete, and upvote.'
 
   return (
     <section
@@ -415,19 +415,10 @@ export default function CommentThread({
           </div>
         </form>
       ) : (
-        <div className="mt-4 flex flex-col gap-3 rounded-[18px] border border-white/10 bg-white/6 px-4 py-4">
-          <p className="text-sm leading-6 text-slate-300/76">
-            Comments stay public, but community actions now use Google sign-in to
-            reduce spam and make ownership clear.
-          </p>
-          <button
-            type="button"
-            onClick={handleSignIn}
-            disabled={!isReady || isSigningIn}
-            className="self-start rounded-[16px] bg-[linear-gradient(135deg,#ffd2a6,#ff7a45)] px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_14px_28px_rgba(255,122,69,0.22)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {isSigningIn ? 'Redirecting...' : 'Sign in with Google'}
-          </button>
+        <div className="mt-4 rounded-[18px] border border-white/10 bg-white/6 px-4 py-4 text-sm leading-6 text-slate-300/76">
+          Comments stay public, but posting, editing, deleting, and upvoting now
+          use the single Google sign-in action above to reduce spam and make
+          ownership clear.
         </div>
       )}
 
