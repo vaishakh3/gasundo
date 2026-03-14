@@ -9,7 +9,7 @@ import ViewportSync from '@/components/ViewportSync'
 import { getSupabasePublicConfig } from '@/lib/supabase-env'
 import { Analytics } from '@vercel/analytics/next'
 
-const siteUrl = new URL('https://gasundo.live')
+const siteUrl = new URL('https://www.gasundo.live')
 const appThemeColor = '#090f20'
 
 const publicSans = Public_Sans({

@@ -36,7 +36,7 @@ function buildStructuredData(restaurantCount) {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'GasUndo',
-      url: 'https://gasundo.live',
+      url: 'https://www.gasundo.live',
       inLanguage: 'en-IN',
       description: pageDescription,
       areaServed: {
@@ -46,14 +46,14 @@ function buildStructuredData(restaurantCount) {
       publisher: {
         '@type': 'Organization',
         name: 'GasUndo',
-        url: 'https://gasundo.live',
+        url: 'https://www.gasundo.live',
       },
     },
     {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',
       name: 'GasUndo',
-      url: 'https://gasundo.live',
+      url: 'https://www.gasundo.live',
       applicationCategory: 'UtilityApplication',
       operatingSystem: 'Any',
       inLanguage: 'en-IN',

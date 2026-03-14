@@ -6,7 +6,7 @@ export default function robots() {
         allow: '/',
       },
     ],
-    sitemap: 'https://gasundo.live/sitemap.xml',
-    host: 'gasundo.live',
+    sitemap: 'https://www.gasundo.live/sitemap.xml',
+    host: 'www.gasundo.live',
   }
 }

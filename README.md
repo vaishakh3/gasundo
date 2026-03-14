@@ -16,8 +16,20 @@ UPSTASH_REDIS_REST_TOKEN=
 
 The committed `.env.example` lists the same keys without secrets.
 
-Enable Google Auth in the Supabase dashboard and configure its redirect URL to
-include `/auth/callback` for your local and deployed app origins.
+Enable Google Auth in the Supabase dashboard with these production values:
+
+- Supabase Auth `Site URL`: `https://www.gasundo.live`
+- Supabase Auth redirect URLs:
+  `http://localhost:3000/auth/callback`,
+  `https://www.gasundo.live/auth/callback`
+- Google OAuth authorized JavaScript origins:
+  `http://localhost:3000`,
+  `https://www.gasundo.live`
+- Google OAuth authorized redirect URI:
+  `https://vdtteszflcvbkwbkoaig.supabase.co/auth/v1/callback`
+
+If `https://gasundo.live` is still attached in production, it should redirect
+to `https://www.gasundo.live`.
 
 ## Scripts
 
