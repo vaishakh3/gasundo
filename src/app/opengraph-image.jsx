@@ -85,7 +85,7 @@ export default function OpengraphImage() {
               color: 'rgba(226, 232, 240, 0.74)',
             }}
           >
-            <div>www.gasundo.live</div>
+            <div>gasundo.live</div>
             <div>Kochi | Ernakulam | Kerala</div>
           </div>
         </div>
