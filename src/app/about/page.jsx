@@ -73,6 +73,64 @@ export default function AboutPage() {
               </div>
             </div>
 
+            <section className="mt-5 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,14,28,0.72),rgba(6,11,24,0.52))] p-4 shadow-[0_18px_42px_rgba(5,8,22,0.24)] sm:p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--accent-gold)]/78">
+                Learn more about mapping
+              </p>
+              <p className="mt-3 text-sm leading-6 text-slate-200/74 sm:text-[0.95rem]">
+                If you want to go beyond adding one place, these resources can
+                help you learn the basics properly and connect with mapping work
+                happening in Kerala.
+              </p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <a
+                  href="https://learnosm.org/en/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-[20px] border border-white/10 bg-white/6 p-4 transition hover:border-[rgba(255,210,166,0.32)] hover:bg-white/10"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    LearnOSM
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300/74">
+                    Beginner-friendly guides for editing OpenStreetMap, mapping
+                    workflows, and field data basics.
+                  </p>
+                </a>
+
+                <a
+                  href="https://mapathonkeralam.in/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-[20px] border border-[rgba(255,210,166,0.16)] bg-[rgba(255,122,69,0.1)] p-4 transition hover:border-[rgba(255,210,166,0.34)] hover:bg-[rgba(255,122,69,0.14)]"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    Mapathon Kerala
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300/74">
+                    Local mapping effort and community context that can help
+                    people contribute data closer to home.
+                  </p>
+                </a>
+
+                <a
+                  href="https://t.me/osmkerala"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-[20px] border border-white/10 bg-white/6 p-4 transition hover:border-[rgba(255,210,166,0.32)] hover:bg-white/10 sm:col-span-2"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    Telegram: @osmkerala
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300/74">
+                    Community help channel for OpenStreetMap mapping questions,
+                    local guidance, and support when you get stuck.
+                  </p>
+                </a>
+              </div>
+            </section>
+
             <div className="mt-5 flex flex-wrap gap-3">
               <a
                 href="https://www.openstreetmap.org/"

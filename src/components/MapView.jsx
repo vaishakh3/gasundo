@@ -9,6 +9,7 @@ import { DEFAULT_MAP_ZOOM, KOCHI_CENTER } from '@/lib/constants'
 
 import LocateButton from './LocateButton'
 import RestaurantMarker from './RestaurantMarker'
+import ZoomControl from './ZoomControl'
 
 const createClusterCustomIcon = function (cluster) {
   const count = cluster.getChildCount()
@@ -120,6 +121,7 @@ export default function MapView({
           )
         })}
       </MarkerClusterGroup>
+      <ZoomControl />
       <LocateButton onError={onLocateError} />
       <MapController selectedRestaurant={selectedRestaurant} />
     </MapContainer>
