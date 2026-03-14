@@ -7,6 +7,7 @@ import GlobalInfoButton from '@/components/GlobalInfoButton'
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import ViewportSync from '@/components/ViewportSync'
 import { getSupabasePublicConfig } from '@/lib/supabase-env'
+import { Analytics } from '@vercel/analytics/next'
 
 const siteUrl = new URL('https://gasundo.live')
 const appThemeColor = '#090f20'
@@ -148,13 +149,11 @@ export const metadata = {
   icons: {
     icon: [
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: {
-      url: '/icons/apple-touch-icon.png',
-      sizes: '180x180',
-      type: 'image/png',
-    },
+    apple: [
+      { url: '/icons/icon-192.png' },
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
 }
 
@@ -182,6 +181,7 @@ export default function RootLayout({ children }) {
         </AppProviders>
         <GlobalInfoButton />
         <ServiceWorkerRegister />
+        <Analytics />
       </body>
     </html>
   )
