@@ -21,7 +21,7 @@ import {
   getStatusSnapshotQueryKey,
 } from '@/lib/query-keys'
 import { useQueryStore } from '@/store/query-store'
-import { fetchCatalog } from '@/services/catalogService'
+import { fetchCatalog, importCatalogPlace } from '@/services/catalogService'
 import { fetchStatusSnapshot } from '@/services/statusSnapshotService'
 import {
   confirmStatus as confirmStatusRequest,
@@ -47,6 +47,32 @@ function mergeStatusIntoSnapshot(snapshot, status) {
       ...(snapshot?.statuses || {}),
       [status.restaurant_key]: status,
     },
+  }
+}
+
+function mergeRestaurantIntoCatalog(catalog, restaurant) {
+  const currentCatalog = catalog || {
+    catalogVersion: 'local',
+    restaurants: [],
+  }
+  const restaurants = Array.isArray(currentCatalog.restaurants)
+    ? currentCatalog.restaurants
+    : []
+  const existingIndex = restaurants.findIndex(
+    (entry) => entry.restaurant_key === restaurant.restaurant_key
+  )
+  const nextRestaurants =
+    existingIndex === -1
+      ? [...restaurants, restaurant].sort((left, right) =>
+          left.name.localeCompare(right.name)
+        )
+      : restaurants.map((entry, index) =>
+          index === existingIndex ? restaurant : entry
+        )
+
+  return {
+    ...currentCatalog,
+    restaurants: nextRestaurants,
   }
 }
 
@@ -345,6 +371,21 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     },
   })
 
+  const importPlaceMutation = useMutation({
+    mutationFn: importCatalogPlace,
+    onSuccess: ({ restaurant }) => {
+      if (!restaurant) {
+        return
+      }
+
+      queryClient.setQueryData(CATALOG_QUERY_KEY, (currentCatalog) =>
+        mergeRestaurantIntoCatalog(currentCatalog, restaurant)
+      )
+      setSelectedRestaurantId(restaurant.restaurant_key)
+      showNotice(`Imported ${restaurant.name}.`, 'neutral')
+    },
+  })
+
   const handleSelectRestaurant = (restaurantOrId) => {
     const nextSelectedId =
       typeof restaurantOrId === 'string'
@@ -369,6 +410,11 @@ export default function HomeClient({ initialRestaurants, initialError }) {
 
   const handleConfirm = async (statusData) => {
     return confirmStatusMutation.mutateAsync(statusData)
+  }
+
+  const handleImportPlace = async (placeId) => {
+    const payload = await importPlaceMutation.mutateAsync(placeId)
+    return payload?.restaurant || null
   }
 
   return (
@@ -411,6 +457,8 @@ export default function HomeClient({ initialRestaurants, initialError }) {
               restaurantsById={catalogIndex.restaurantById}
               statusMap={statusMap}
               onSelectRestaurant={handleSelectRestaurant}
+              onImportPlace={handleImportPlace}
+              onNotice={showNotice}
               selectedRestaurant={selectedRestaurant}
               selectedRestaurantId={selectedRestaurantId}
               onLocateError={(message) => showNotice(message, 'error')}

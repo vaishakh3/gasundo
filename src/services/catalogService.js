@@ -23,3 +23,16 @@ export async function fetchCatalog() {
 
   return parseResponse(response, 'Could not load the restaurant catalog right now.')
 }
+
+export async function importCatalogPlace(placeId) {
+  const response = await fetch('/api/catalog/import', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ placeId }),
+  })
+
+  return parseResponse(response, 'Could not import this place right now.')
+}

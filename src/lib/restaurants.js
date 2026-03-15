@@ -18,6 +18,7 @@ const RESTAURANT_CATALOG_SYNC_ROW_ID = 'main'
 const UPSERT_CHUNK_SIZE = 500
 const GOOGLE_PLACES_SEARCH_NEARBY_URL =
   'https://places.googleapis.com/v1/places:searchNearby'
+const GOOGLE_PLACES_DETAILS_URL = 'https://places.googleapis.com/v1/places'
 const GOOGLE_PLACES_FIELD_MASK = [
   'places.id',
   'places.displayName',
@@ -26,6 +27,15 @@ const GOOGLE_PLACES_FIELD_MASK = [
   'places.primaryType',
   'places.types',
   'places.businessStatus',
+].join(',')
+const GOOGLE_PLACE_DETAILS_FIELD_MASK = [
+  'id',
+  'displayName',
+  'formattedAddress',
+  'location',
+  'primaryType',
+  'types',
+  'businessStatus',
 ].join(',')
 const GOOGLE_PLACES_INCLUDED_TYPES = [
   'restaurant',
@@ -134,6 +144,37 @@ async function searchGooglePlacesNearby({
   if (!response.ok) {
     const message = await response.text()
     throw new Error(`Google Places API error: ${response.status} ${message}`)
+  }
+
+  return response.json()
+}
+
+async function fetchGooglePlaceDetails(placeId, timeoutMs) {
+  const apiKey = getGooglePlacesApiKey()
+
+  if (!apiKey) {
+    throw new Error('Missing Google Places API key.')
+  }
+
+  if (!placeId) {
+    throw new Error('Place id is required.')
+  }
+
+  const response = await fetch(
+    `${GOOGLE_PLACES_DETAILS_URL}/${encodeURIComponent(placeId)}?languageCode=en`,
+    {
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': GOOGLE_PLACE_DETAILS_FIELD_MASK,
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(timeoutMs),
+    }
+  )
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(`Google Place Details error: ${response.status} ${message}`)
   }
 
   return response.json()
@@ -468,6 +509,60 @@ async function upsertRestaurantsToDb(supabase, restaurants, existingRowsByPlaceI
       throw error
     }
   }
+}
+
+export async function importRestaurantToDbByPlaceId(placeId) {
+  const supabase = getSupabaseAdmin()
+
+  if (!supabase) {
+    throw new Error('Server is missing Supabase configuration.')
+  }
+
+  const existingRowsByPlaceId = await readExistingCatalogRowsByPlaceId(supabase)
+  const existingRow = existingRowsByPlaceId.get(placeId)
+
+  if (existingRow?.restaurant_key) {
+    const dbRestaurants = await readRestaurantsFromDb(supabase)
+    const existingRestaurant = dbRestaurants.find(
+      (restaurant) => restaurant.place_id === placeId
+    )
+
+    if (existingRestaurant) {
+      return existingRestaurant
+    }
+  }
+
+  const timeoutMs = Number(process.env.RESTAURANT_CATALOG_FETCH_TIMEOUT_MS)
+  const effectiveTimeoutMs =
+    Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? timeoutMs
+      : DEFAULT_FETCH_TIMEOUT_MS
+  const place = await fetchGooglePlaceDetails(placeId, effectiveTimeoutMs)
+
+  if (!isFoodPlace(place)) {
+    throw new Error('This Google place is not a supported food venue.')
+  }
+
+  const normalizedRestaurant = normalizeGooglePlace(place)
+
+  if (!normalizedRestaurant) {
+    throw new Error('Could not import this place into the Kochi restaurant catalog.')
+  }
+
+  const [restaurant] = applyStableRestaurantKeys(
+    [normalizedRestaurant],
+    existingRowsByPlaceId
+  )
+
+  await upsertRestaurantsToDb(supabase, [restaurant], existingRowsByPlaceId)
+
+  await writeCatalogSyncState(supabase, {
+    status: 'idle',
+    restaurant_count: (await readRestaurantsFromDb(supabase)).length,
+    last_error: null,
+  })
+
+  return restaurant
 }
 
 async function syncRestaurantsToDb(supabase) {

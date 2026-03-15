@@ -105,6 +105,8 @@ export default function MapView({
   restaurantsById,
   statusMap,
   onSelectRestaurant,
+  onImportPlace,
+  onNotice,
   selectedRestaurant,
   selectedRestaurantId,
   onLocateError,
@@ -138,6 +140,8 @@ export default function MapView({
     restaurantsById,
     statusMap,
     onSelectRestaurant,
+    onImportPlace,
+    onNotice,
     selectedRestaurant,
     selectedRestaurantId,
     publicApiKey,
@@ -237,6 +241,8 @@ function useMapEffects({
   restaurantsById,
   statusMap,
   onSelectRestaurant,
+  onImportPlace,
+  onNotice,
   selectedRestaurant,
   selectedRestaurantId,
   publicApiKey,
@@ -253,6 +259,7 @@ function useMapEffects({
     let cancelled = false
     let listeners = []
     const currentMarkers = markersByIdRef.current
+    let importingPlace = false
 
     async function initializeMap() {
       const [googleMaps, clustererModule] = await Promise.all([
@@ -275,7 +282,7 @@ function useMapEffects({
         zoom: DEFAULT_MAP_ZOOM,
         mapId: publicMapId,
         disableDefaultUI: true,
-        clickableIcons: false,
+        clickableIcons: true,
         gestureHandling: 'greedy',
         minZoom: 10,
         maxZoom: 20,
@@ -298,6 +305,34 @@ function useMapEffects({
       listeners = [
         map.addListener('zoom_changed', syncZoomState),
         map.addListener('idle', syncZoomState),
+        map.addListener('click', async (event) => {
+          const placeId = typeof event.placeId === 'string' ? event.placeId.trim() : ''
+
+          if (!placeId || importingPlace) {
+            return
+          }
+
+          event.stop?.()
+          importingPlace = true
+
+          try {
+            const importedRestaurant = await onImportPlace?.(placeId)
+
+            if (!importedRestaurant) {
+              throw new Error('Could not import this Google Maps place.')
+            }
+          } catch (error) {
+            console.error('Failed to import the clicked Google Maps place:', error)
+            onNotice?.(
+              error instanceof Error
+                ? error.message
+                : 'Could not import this place right now.',
+              'error'
+            )
+          } finally {
+            importingPlace = false
+          }
+        }),
       ]
 
       syncZoomState()
@@ -349,6 +384,8 @@ function useMapEffects({
     mapRef,
     markerClusterRef,
     markersByIdRef,
+    onImportPlace,
+    onNotice,
     publicApiKey,
     publicMapId,
     setMapReady,
@@ -405,6 +442,8 @@ function useMapEffects({
     markerClusterRef,
     markersByIdRef,
     onSelectRestaurant,
+    onImportPlace,
+    onNotice,
     restaurantIds,
     restaurantsById,
     selectedRestaurantId,
