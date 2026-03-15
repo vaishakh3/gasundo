@@ -9,7 +9,8 @@ import { buildRestaurantKey } from './status-key.js'
 const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const RESTAURANTS_CACHE_TTL_SECONDS = 24 * 60 * 60
 export const RESTAURANTS_CACHE_TAG = 'restaurant-catalog'
-const DEFAULT_FETCH_TIMEOUT_MS = 8000
+const DEFAULT_FETCH_TIMEOUT_MS = 20000
+const DEFAULT_OVERPASS_QUERY_TIMEOUT_SECONDS = 60
 const FOOD_AMENITY_PATTERN =
   '^(restaurant|cafe|fast_food|food_court|bar|pub|ice_cream)$'
 
@@ -53,13 +54,13 @@ function escapeOverpassRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function buildDistrictOverpassQuery(district) {
+function buildDistrictOverpassQuery(district, timeoutSeconds) {
   const districtNamePattern = `^${escapeOverpassRegex(
     district.overpassName
   )}( District| district)?$`
 
   return `
-[out:json][timeout:25];
+[out:json][timeout:${timeoutSeconds}];
 area["ISO3166-2"="IN-KL"]["boundary"="administrative"]->.kerala;
 (
   relation(area.kerala)["boundary"="administrative"]["admin_level"~"5|6"]["name"~"${districtNamePattern}"];
@@ -74,12 +75,8 @@ map_to_area->.searchArea;
   node["shop"="bakery"](area.searchArea);
   way["shop"="bakery"](area.searchArea);
   relation["shop"="bakery"](area.searchArea);
-
-  node["amenity"="ice_cream"](area.searchArea);
-  way["amenity"="ice_cream"](area.searchArea);
-  relation["amenity"="ice_cream"](area.searchArea);
 );
-out center;
+out center qt;
 `
 }
 
@@ -95,17 +92,24 @@ async function fetchRestaurantsFromOverpass(district) {
   const overpassUrl =
     process.env.RESTAURANT_CATALOG_OVERPASS_URL || DEFAULT_OVERPASS_URL
   const timeoutMs = Number(process.env.RESTAURANT_CATALOG_FETCH_TIMEOUT_MS)
+  const queryTimeoutSeconds = Number(
+    process.env.RESTAURANT_CATALOG_OVERPASS_TIMEOUT_SECONDS
+  )
   const effectiveTimeoutMs =
     Number.isFinite(timeoutMs) && timeoutMs > 0
       ? timeoutMs
       : DEFAULT_FETCH_TIMEOUT_MS
+  const effectiveQueryTimeoutSeconds =
+    Number.isFinite(queryTimeoutSeconds) && queryTimeoutSeconds > 0
+      ? queryTimeoutSeconds
+      : DEFAULT_OVERPASS_QUERY_TIMEOUT_SECONDS
 
   const response = await fetch(overpassUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'text/plain;charset=UTF-8',
     },
-    body: buildDistrictOverpassQuery(district),
+    body: buildDistrictOverpassQuery(district, effectiveQueryTimeoutSeconds),
     cache: 'no-store',
     signal: AbortSignal.timeout(effectiveTimeoutMs),
   })

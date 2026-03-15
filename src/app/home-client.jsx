@@ -118,6 +118,7 @@ export default function HomeClient({
   const catalogQuery = useQuery({
     queryKey: getCatalogQueryKey(selectedDistrictSlug),
     queryFn: () => fetchCatalog(selectedDistrictSlug),
+    retry: 0,
     initialData:
       !initialError && selectedDistrictSlug === normalizedInitialDistrictSlug
         ? {
