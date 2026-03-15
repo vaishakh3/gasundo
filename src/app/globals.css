@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
 
 :root {
   --ink-950: #060b18;
@@ -58,39 +57,11 @@ body {
   min-height: var(--app-vh);
 }
 
-.leaflet-container {
-  background: #08111f;
-}
-
-.leaflet-tile {
-  filter: saturate(0.78) brightness(0.78) contrast(1.04);
-}
-
-.leaflet-control-attribution {
-  margin: 0 14px 14px 0 !important;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 16, 31, 0.82) !important;
-  color: rgba(226, 232, 240, 0.76);
-  box-shadow: 0 14px 34px rgba(5, 8, 22, 0.24);
-  backdrop-filter: blur(14px);
-}
-
-.leaflet-control-attribution a {
-  color: rgba(255, 210, 166, 0.84) !important;
-}
-
-.leaflet-pane {
-  z-index: 1;
-}
-
-.leaflet-top,
-.leaflet-bottom {
-  z-index: 2;
-}
-
-.leaflet-interactive {
-  cursor: pointer;
+.map-container {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 122, 69, 0.14), transparent 24%),
+    radial-gradient(circle at 78% 22%, rgba(255, 210, 166, 0.1), transparent 18%),
+    linear-gradient(180deg, #0a1226, #08111f 52%, #060b18);
 }
 
 [data-rsbs-backdrop] {
@@ -164,6 +135,63 @@ textarea {
 .custom-ring-marker {
   background: none !important;
   border: none !important;
+}
+
+.custom-google-marker {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.custom-google-marker__ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.custom-google-marker:hover .custom-google-marker__ring {
+  transform: translateY(-1px);
+}
+
+.custom-google-cluster {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.custom-google-cluster__core {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background:
+    radial-gradient(circle at 36% 28%, rgba(255, 255, 255, 0.08), transparent 20%),
+    linear-gradient(180deg, rgba(21, 26, 41, 0.98), rgba(8, 12, 24, 0.99));
+  color: rgba(248, 250, 252, 0.98);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+}
+
+.user-location-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 3px solid #fff;
+  background: #3b82f6;
+  box-shadow:
+    0 0 0 7px rgba(59, 130, 246, 0.18),
+    0 10px 24px rgba(5, 8, 22, 0.28);
 }
 
 .locate-button {
