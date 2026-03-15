@@ -26,12 +26,16 @@ export const metadata = {
   metadataBase: siteUrl,
   applicationName: 'GasUndo',
   title: {
-    default: 'Restaurants Open in Kochi Today | GasUndo',
+    default: 'Gas Undo (GasUndo) | Restaurants Open in Kochi Today',
     template: '%s | GasUndo',
   },
   description:
-    'GasUndo is a live map showing restaurants open in Kochi during the LPG shortage. Find Kochi restaurant status, limited menu updates, and closures across Ernakulam, Kerala.',
+    'Gas Undo, also known as GasUndo, is a live map showing restaurants open in Kochi during the LPG shortage. Find Kochi restaurant status, limited menu updates, and closures across Ernakulam, Kerala.',
   keywords: [
+    'gas undo',
+    'gas undo kochi',
+    'gasundo',
+    'gasundo kochi',
     'restaurants open in Kochi',
     'Kochi restaurant status',
     'Kochi LPG shortage restaurants',
@@ -56,9 +60,9 @@ export const metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'GasUndo | Restaurants Open in Kochi Today',
+    title: 'Gas Undo (GasUndo) | Restaurants Open in Kochi Today',
     description:
-      'Track restaurants open in Kochi, limited menu updates, and closures caused by the LPG shortage across Ernakulam, Kerala.',
+      'Track restaurants open in Kochi with Gas Undo, also known as GasUndo, including limited menu updates and closures caused by the LPG shortage across Ernakulam, Kerala.',
     url: '/',
     siteName: 'GasUndo',
     locale: 'en_IN',
@@ -74,9 +78,9 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GasUndo | Restaurants Open in Kochi Today',
+    title: 'Gas Undo (GasUndo) | Restaurants Open in Kochi Today',
     description:
-      'Live Kochi restaurant status map for open, limited-menu, and closed restaurants during the LPG shortage.',
+      'Live Kochi restaurant status map from Gas Undo (GasUndo) for open, limited-menu, and closed restaurants during the LPG shortage.',
     images: ['/opengraph-image'],
   },
   robots: {

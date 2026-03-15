@@ -5,7 +5,7 @@ import { getRestaurants } from '@/lib/restaurants'
 export const revalidate = 86400
 
 const pageDescription =
-  'GasUndo is a live map showing restaurants open in Kochi during the LPG shortage. Track Kochi restaurant status, limited menu updates, and closures across Ernakulam, Kerala.'
+  'Gas Undo, also known as GasUndo, is a live map showing restaurants open in Kochi during the LPG shortage. Track Kochi restaurant status, limited menu updates, and closures across Ernakulam, Kerala.'
 
 const faqItems = [
   {
@@ -36,6 +36,7 @@ function buildStructuredData(restaurantCount) {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'GasUndo',
+      alternateName: ['Gas Undo', 'GasUndo Kochi', 'Gas Undo Kochi'],
       url: 'https://gasundo.live',
       inLanguage: 'en-IN',
       description: pageDescription,
@@ -46,6 +47,7 @@ function buildStructuredData(restaurantCount) {
       publisher: {
         '@type': 'Organization',
         name: 'GasUndo',
+        alternateName: 'Gas Undo',
         url: 'https://gasundo.live',
       },
     },
@@ -53,6 +55,7 @@ function buildStructuredData(restaurantCount) {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',
       name: 'GasUndo',
+      alternateName: ['Gas Undo', 'GasUndo Kochi', 'Gas Undo Kochi'],
       url: 'https://gasundo.live',
       applicationCategory: 'UtilityApplication',
       operatingSystem: 'Any',
