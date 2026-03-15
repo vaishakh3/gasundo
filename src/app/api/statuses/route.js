@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 
+import { incrementAnalyticsCounter } from '@/lib/analytics'
 import { getClientIp } from '@/lib/http'
 import { enforceRateLimit, getStatusCreateLimiter } from '@/lib/ratelimit'
 import { buildRateLimitKey } from '@/lib/rate-limit-key'
@@ -84,6 +85,17 @@ export async function POST(request) {
       authorIdentityHash: viewer.identityKey,
       authorLabel: viewer.label,
     })
+
+    try {
+      await incrementAnalyticsCounter({
+        metric: 'status_update',
+        restaurantKey: status.restaurant_key,
+        restaurantName: status.restaurant_name,
+      })
+    } catch (analyticsError) {
+      console.error('Failed to record status update analytics:', analyticsError)
+    }
+
     revalidateTag(STATUS_SNAPSHOT_CACHE_TAG, 'max')
     return NextResponse.json(
       {

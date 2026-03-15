@@ -78,6 +78,7 @@ function getLimiters() {
     cachedLimiters = {
       statusCreate: createSlidingWindowLimiter('status-create', 6, '60 m'),
       statusConfirm: createSlidingWindowLimiter('status-confirm', 20, '60 m'),
+      placeOpen: createSlidingWindowLimiter('place-open', 180, '10 m'),
       commentCreate: createSlidingWindowLimiter('comment-create', 6, '10 m'),
       commentEdit: createSlidingWindowLimiter('comment-edit', 12, '10 m'),
       commentDelete: createSlidingWindowLimiter('comment-delete', 6, '10 m'),
@@ -94,6 +95,10 @@ export function getStatusCreateLimiter() {
 
 export function getStatusConfirmLimiter() {
   return getLimiters().statusConfirm
+}
+
+export function getPlaceOpenLimiter() {
+  return getLimiters().placeOpen
 }
 
 export function getCommentCreateLimiter() {

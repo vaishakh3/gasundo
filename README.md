@@ -12,6 +12,7 @@ SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
+ANALYTICS_READ_TOKEN=
 ```
 
 The committed `.env.example` lists the same keys without secrets.
@@ -43,4 +44,5 @@ npm run start
 - `src/app/home-client.jsx` owns the interactive map/filter/sheet state.
 - `src/lib/restaurants.js` fetches and caches Overpass data on the server.
 - `src/lib/statuses.js` handles Supabase reads and writes on the server.
+- `src/lib/analytics.js` stores aggregated place-open and status counters in Supabase.
 - `src/app/api/statuses/*` and `src/app/api/comments/*` expose same-origin routes for authenticated community actions with Upstash-backed rate limiting.

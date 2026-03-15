@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthProvider'
 import FilterBar from '@/components/FilterBar'
 import RestaurantPanel from '@/components/RestaurantPanel'
 import RestaurantSheet from '@/components/RestaurantSheet'
+import { shouldLogPlaceOpen } from '@/lib/analytics-client'
 import {
   buildCatalogIndex,
   selectMapRestaurantIds,
@@ -21,6 +22,7 @@ import {
   getStatusSnapshotQueryKey,
 } from '@/lib/query-keys'
 import { useQueryStore } from '@/store/query-store'
+import { logPlaceOpen } from '@/services/analyticsService'
 import { fetchCatalog } from '@/services/catalogService'
 import { fetchStatusSnapshot } from '@/services/statusSnapshotService'
 import {
@@ -53,6 +55,7 @@ function mergeStatusIntoSnapshot(snapshot, status) {
 export default function HomeClient({ initialRestaurants, initialError }) {
   const queryClient = useQueryClient()
   const hasHydratedSharedRestaurantRef = useRef(false)
+  const previousSelectedRestaurantIdRef = useRef(null)
   const { viewer, isReady: authReady } = useAuth()
   const search = useQueryStore((state) => state.search)
   const statusFilter = useQueryStore((state) => state.statusFilter)
@@ -362,6 +365,31 @@ export default function HomeClient({ initialRestaurants, initialError }) {
   const selectedRestaurant = selectedRecord?.restaurant || null
   const selectedStatusData = selectedRecord?.statusData || null
   const isFiltering = search !== deferredSearch
+
+  useEffect(() => {
+    if (!selectedRestaurantId) {
+      previousSelectedRestaurantIdRef.current = null
+      return
+    }
+
+    if (
+      !shouldLogPlaceOpen(
+        previousSelectedRestaurantIdRef.current,
+        selectedRestaurantId,
+        Boolean(selectedRestaurant)
+      )
+    ) {
+      return
+    }
+
+    previousSelectedRestaurantIdRef.current = selectedRestaurantId
+    void logPlaceOpen({
+      restaurant_key: selectedRestaurant.restaurant_key,
+      restaurant_name: selectedRestaurant.name,
+    }).catch((error) => {
+      console.error('Failed to record place-open analytics:', error)
+    })
+  }, [selectedRestaurant, selectedRestaurantId])
 
   const handleStatusUpdate = async (updateData) => {
     return updateStatusMutation.mutateAsync(updateData)
