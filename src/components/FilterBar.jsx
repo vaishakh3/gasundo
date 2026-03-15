@@ -69,11 +69,13 @@ export default function FilterBar({
   }
 
   const isMobile = variant === 'mobile'
-  const usesGridFilterLayout = isMobile || variant === 'panel'
+  const usesGridFilterLayout = variant === 'panel'
   const searchInputPaddingClass = searchValue ? 'pr-14' : 'pr-4'
-  const filterContainerClass = usesGridFilterLayout
-    ? `${variant === 'panel' ? 'mt-2' : 'mt-2.5'} grid grid-cols-2 gap-1.5`
-    : `${variant === 'panel' ? 'mt-2' : 'mt-2.5'} flex gap-2 overflow-x-auto no-scrollbar`
+  const filterContainerClass = isMobile
+    ? 'mt-2.5 flex gap-1.5 overflow-x-auto pb-1 no-scrollbar snap-x snap-mandatory'
+    : usesGridFilterLayout
+      ? `${variant === 'panel' ? 'mt-2' : 'mt-2.5'} grid grid-cols-2 gap-1.5`
+      : `${variant === 'panel' ? 'mt-2' : 'mt-2.5'} flex gap-2 overflow-x-auto no-scrollbar`
 
   return (
     <div className={rootClass}>
@@ -215,7 +217,7 @@ export default function FilterBar({
                 onClick={() => onStatusFilterChange(filterOption.value)}
                 className={`inline-flex items-center rounded-full border font-semibold whitespace-nowrap transition ${
                   isMobile
-                    ? 'w-full min-h-10 justify-between gap-1.5 px-3 py-2 text-[0.78rem]'
+                    ? 'min-h-10 min-w-[132px] shrink-0 snap-start justify-between gap-2 px-3 py-2 text-[0.78rem]'
                     : usesGridFilterLayout
                     ? 'w-full min-h-10 justify-between gap-2 px-3.5 py-2 text-sm'
                     : 'min-h-9.5 gap-2 px-3.5 py-2 text-[0.84rem]'

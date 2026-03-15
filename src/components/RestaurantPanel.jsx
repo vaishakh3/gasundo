@@ -70,12 +70,11 @@ export default function RestaurantPanel({
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-4 gap-2">
+            <div className="mt-4 grid grid-cols-3 gap-2">
               {[
                 { key: 'open', label: 'Open' },
                 { key: 'limited', label: 'Limited' },
                 { key: 'closed', label: 'Closed' },
-                { key: 'unknown', label: 'Unknown' },
               ].map((item) => (
                 <div
                   key={item.key}
