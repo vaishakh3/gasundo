@@ -1,3 +1,5 @@
+import { getDistrictConfig, normalizeDistrictSlug } from '@/lib/districts'
+
 async function parseResponse(response, fallbackMessage) {
   let payload = null
 
@@ -14,12 +16,21 @@ async function parseResponse(response, fallbackMessage) {
   return payload
 }
 
-export async function fetchCatalog() {
-  const response = await fetch('/api/catalog', {
+export async function fetchCatalog(districtSlug) {
+  const district = normalizeDistrictSlug(districtSlug)
+  const districtLabel = getDistrictConfig(district).name
+  const url = new URL('/api/catalog', window.location.origin)
+
+  url.searchParams.set('district', district)
+
+  const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
     },
   })
 
-  return parseResponse(response, 'Could not load the restaurant catalog right now.')
+  return parseResponse(
+    response,
+    `Could not load the ${districtLabel} restaurant catalog right now.`
+  )
 }

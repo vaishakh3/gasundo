@@ -30,7 +30,11 @@ function getAnalyticsSessionId() {
   }
 }
 
-export async function logPlaceOpen({ restaurant_key, restaurant_name }) {
+export async function logPlaceOpen({
+  restaurant_key,
+  restaurant_name,
+  district_slug,
+}) {
   const headers = {
     'Content-Type': 'application/json',
   }
@@ -46,6 +50,7 @@ export async function logPlaceOpen({ restaurant_key, restaurant_name }) {
     body: JSON.stringify({
       restaurant_key,
       restaurant_name,
+      district_slug: district_slug || null,
     }),
     keepalive: true,
   })

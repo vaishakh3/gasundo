@@ -68,11 +68,13 @@ test('validatePlaceOpenPayload enforces required restaurant fields', () => {
     validatePlaceOpenPayload({
       restaurant_key: 'alpha-burger::9.90000::76.20000',
       restaurant_name: 'Alpha Burger',
+      district_slug: 'ernakulam',
     }),
     {
       data: {
         restaurant_key: 'alpha-burger::9.90000::76.20000',
         restaurant_name: 'Alpha Burger',
+        district_slug: 'ernakulam',
       },
     }
   )
@@ -90,6 +92,14 @@ test('validatePlaceOpenPayload enforces required restaurant fields', () => {
       restaurant_name: '',
     }).error,
     'Restaurant name is required.'
+  )
+  assert.equal(
+    validatePlaceOpenPayload({
+      restaurant_key: 'alpha-burger::9.90000::76.20000',
+      restaurant_name: 'Alpha Burger',
+      district_slug: 'unknown-place',
+    }).error,
+    'District must be a supported Kerala district.'
   )
 })
 

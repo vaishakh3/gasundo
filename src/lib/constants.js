@@ -1,19 +1,8 @@
-export const KOCHI_BOUNDS = {
-  minLat: 9.75,
-  minLng: 75.95,
-  maxLat: 10.15,
-  maxLng: 76.55,
-}
+import { DEFAULT_DISTRICT_SLUG, getDistrictConfig, KERALA_BOUNDS } from './districts.js'
 
-export const KOCHI_CENTER = [9.9312, 76.2673]
-export const DEFAULT_MAP_ZOOM = 13
+export { KERALA_BOUNDS }
+
+export const DEFAULT_MAP_CENTER =
+  getDistrictConfig(DEFAULT_DISTRICT_SLUG).mapCenter
+export const DEFAULT_MAP_ZOOM = 11
 export const STATUS_VALUES = ['open', 'limited', 'closed']
-
-export function isWithinKochiBounds(lat, lng) {
-  return (
-    lat >= KOCHI_BOUNDS.minLat &&
-    lat <= KOCHI_BOUNDS.maxLat &&
-    lng >= KOCHI_BOUNDS.minLng &&
-    lng <= KOCHI_BOUNDS.maxLng
-  )
-}

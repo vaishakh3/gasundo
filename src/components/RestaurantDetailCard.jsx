@@ -251,7 +251,7 @@ export default function RestaurantDetailCard({
                 </p>
               ) : (
                 <p className="mt-2 max-w-xl text-sm text-slate-300/72">
-                  Crowd-reported status for this place during the Kochi LPG shortage.
+                  Crowd-reported status for this place during the Kerala LPG shortage.
                 </p>
               )}
             </div>

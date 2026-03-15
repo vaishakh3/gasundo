@@ -7,6 +7,7 @@ import {
 import { getClientIp } from '@/lib/http'
 import { enforceRateLimit, getPlaceOpenLimiter } from '@/lib/ratelimit'
 import { buildRateLimitKey } from '@/lib/rate-limit-key'
+import { DEFAULT_DISTRICT_SLUG, DISTRICT_OPTIONS } from '@/lib/districts'
 import { getRestaurants } from '@/lib/restaurants'
 
 export const runtime = 'nodejs'
@@ -74,13 +75,46 @@ export async function POST(request) {
   }
 
   try {
-    const restaurants = await getRestaurants()
-    const restaurant = restaurants.find(
-      (catalogRestaurant) =>
-        catalogRestaurant.restaurant_key === validation.data.restaurant_key
-    )
+    const districtSlugs = validation.data.district_slug
+      ? [validation.data.district_slug]
+      : [
+          DEFAULT_DISTRICT_SLUG,
+          ...DISTRICT_OPTIONS.map((district) => district.slug).filter(
+            (districtSlug) => districtSlug !== DEFAULT_DISTRICT_SLUG
+          ),
+        ]
+    let restaurant = null
+    let catalogLookupFailed = false
+
+    for (const districtSlug of districtSlugs) {
+      let restaurants = []
+
+      try {
+        restaurants = await getRestaurants(districtSlug)
+      } catch (catalogError) {
+        catalogLookupFailed = true
+        console.error(
+          `Failed to load catalog while recording place-open analytics for ${districtSlug}:`,
+          catalogError
+        )
+        continue
+      }
+
+      restaurant = restaurants.find(
+        (catalogRestaurant) =>
+          catalogRestaurant.restaurant_key === validation.data.restaurant_key
+      )
+
+      if (restaurant) {
+        break
+      }
+    }
 
     if (!restaurant) {
+      if (catalogLookupFailed) {
+        return jsonError('Could not verify this restaurant right now.', 500)
+      }
+
       return jsonError('Restaurant not found.', 404)
     }
 

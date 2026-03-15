@@ -1,4 +1,8 @@
-export const CATALOG_QUERY_KEY = ['catalog']
+import { DEFAULT_DISTRICT_SLUG, normalizeDistrictSlug } from './districts.js'
+
+export function getCatalogQueryKey(districtSlug = DEFAULT_DISTRICT_SLUG) {
+  return ['catalog', normalizeDistrictSlug(districtSlug)]
+}
 
 export function getStatusSnapshotQueryKey(viewerScope = 'guest') {
   return ['status-snapshot', viewerScope]

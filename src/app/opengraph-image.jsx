@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = 'GasUndo live map of restaurants open in Kochi'
+export const alt = 'GasUndo Kerala restaurant status map'
 export const size = {
   width: 1200,
   height: 630,
@@ -61,7 +61,7 @@ export default function OpengraphImage() {
                 maxWidth: '820px',
               }}
             >
-              Restaurants open in Kochi during the LPG shortage
+              Kerala restaurant status map during the LPG shortage
             </div>
             <div
               style={{
@@ -71,8 +71,8 @@ export default function OpengraphImage() {
                 color: 'rgba(226, 232, 240, 0.82)',
               }}
             >
-              Live map of open, limited-menu, and closed restaurants across
-              Kochi, Ernakulam, and Kerala.
+              Live district-by-district map of open, limited-menu, and closed
+              restaurants across Kerala.
             </div>
           </div>
 
@@ -86,7 +86,7 @@ export default function OpengraphImage() {
             }}
           >
             <div>gasundo.live</div>
-            <div>Kochi | Ernakulam | Kerala</div>
+            <div>Ernakulam by default | All Kerala</div>
           </div>
         </div>
       </div>

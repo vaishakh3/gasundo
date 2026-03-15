@@ -5,7 +5,8 @@ import MarkerClusterGroup from 'react-leaflet-cluster'
 import { useEffect } from 'react'
 import L from 'leaflet'
 
-import { DEFAULT_MAP_ZOOM, KOCHI_CENTER } from '@/lib/constants'
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '@/lib/constants'
+import { getDistrictConfig } from '@/lib/districts'
 
 import LocateButton from './LocateButton'
 import RestaurantMarker from './RestaurantMarker'
@@ -25,8 +26,7 @@ const createClusterCustomIcon = function (cluster) {
   })
 }
 
-// Helper component to handle imperative map operations
-function MapController({ selectedRestaurant }) {
+function MapController({ selectedRestaurant, viewportRequest }) {
   const map = useMap()
 
   useEffect(() => {
@@ -37,6 +37,19 @@ function MapController({ selectedRestaurant }) {
       })
     }
   }, [selectedRestaurant, map])
+
+  useEffect(() => {
+    if (!viewportRequest?.id || viewportRequest.kind !== 'district') {
+      return
+    }
+
+    const district = getDistrictConfig(viewportRequest.districtSlug)
+
+    map.flyTo(district.mapCenter, DEFAULT_MAP_ZOOM, {
+      animate: true,
+      duration: 1,
+    })
+  }, [map, viewportRequest])
 
   useEffect(() => {
     let frameId = 0
@@ -76,17 +89,20 @@ function MapController({ selectedRestaurant }) {
 }
 
 export default function MapView({
+  district,
+  viewportRequest,
   restaurantIds,
   restaurantsById,
   statusMap,
   onSelectRestaurant,
   selectedRestaurant,
   selectedRestaurantId,
+  onLocateSuccess,
   onLocateError,
 }) {
   return (
     <MapContainer
-      center={KOCHI_CENTER}
+      center={district?.mapCenter || DEFAULT_MAP_CENTER}
       zoom={DEFAULT_MAP_ZOOM}
       className="map-container"
       zoomControl={false}
@@ -122,8 +138,11 @@ export default function MapView({
         })}
       </MarkerClusterGroup>
       <ZoomControl />
-      <LocateButton onError={onLocateError} />
-      <MapController selectedRestaurant={selectedRestaurant} />
+      <LocateButton onError={onLocateError} onSuccess={onLocateSuccess} />
+      <MapController
+        selectedRestaurant={selectedRestaurant}
+        viewportRequest={viewportRequest}
+      />
     </MapContainer>
   )
 }

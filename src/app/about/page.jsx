@@ -1,7 +1,7 @@
 export const metadata = {
   title: 'About',
   description:
-    'Why GasUndo exists, how the LPG shortage has affected restaurants in Kochi, and why OpenStreetMap data matters.',
+    'Why GasUndo exists, how the LPG shortage has affected restaurants across Kerala, and why OpenStreetMap data matters.',
 }
 
 export default function AboutPage() {
@@ -19,9 +19,9 @@ export default function AboutPage() {
           <div className="mt-6 space-y-4 text-base leading-7 text-slate-200/78">
             <p>
               GasUndo exists because the war-driven LPG shortage has affected
-              everyday life across Kochi. As supply became uncertain, many
-              restaurants were pushed into running at lower capacity, serving a
-              smaller menu, or closing altogether for parts of the day.
+              everyday life across Kerala. As supply became uncertain, many
+              restaurants were pushed into running at lower capacity, serving
+              a smaller menu, or closing altogether for parts of the day.
             </p>
             <p>
               This map is meant to make one frustrating problem a little easier.

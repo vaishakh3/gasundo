@@ -1,48 +1,49 @@
 import HomeClient from './home-client'
 
+import { getDistrictConfig, normalizeDistrictSlug } from '@/lib/districts'
 import { getRestaurants } from '@/lib/restaurants'
 
 export const revalidate = 86400
 
 const pageDescription =
-  'Gas Undo, also known as GasUndo, is a live map showing restaurants open in Kochi during the LPG shortage. Track Kochi restaurant status, limited menu updates, and closures across Ernakulam, Kerala.'
+  'GasUndo is a live Kerala restaurant status map for LPG shortage updates. Track open, limited-menu, and closed restaurants district by district, starting with Ernakulam by default.'
 
 const faqItems = [
   {
-    question: 'Which restaurants are open in Kochi today?',
+    question: 'Which restaurants are open in Kerala today?',
     answer:
-      'GasUndo shows a live map of restaurants open in Kochi, along with places serving a limited menu and restaurants closed because of the LPG shortage.',
+      'GasUndo shows a live map of restaurants open across Kerala, along with places serving a limited menu and restaurants closed because of the LPG shortage.',
   },
   {
-    question: 'How does GasUndo show Kochi restaurant availability?',
+    question: 'How does GasUndo show district-wise restaurant availability?',
     answer:
-      'The app collects community updates in real time so people can check Kochi restaurant status on one map instead of calling restaurants individually.',
+      'The app loads restaurants one district at a time and combines that with community updates so people can check restaurant status without slowing down the map or search suggestions.',
   },
   {
-    question: 'Can I find restaurants running a limited menu in Kochi?',
+    question: 'Can I find restaurants running a limited menu in my district?',
     answer:
-      'Yes. GasUndo highlights restaurants running a limited menu in Kochi so people can quickly see which food places are affected before they travel.',
+      'Yes. GasUndo highlights restaurants running a limited menu in the selected Kerala district so people can quickly see which food places are affected before they travel.',
   },
   {
-    question: 'Why are some restaurants closed in Kochi during the LPG shortage?',
+    question: 'Why are some restaurants closed during the LPG shortage?',
     answer:
-      'Restaurants across Kochi have been affected by LPG supply issues, which can lead to temporary closures, shorter hours, or reduced menus across Ernakulam, Kerala.',
+      'Restaurants across Kerala can be affected by LPG supply issues, which can lead to temporary closures, shorter hours, or reduced menus in different districts.',
   },
 ]
 
-function buildStructuredData(restaurantCount) {
+function buildStructuredData(restaurantCount, districtName) {
   return [
     {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'GasUndo',
-      alternateName: ['Gas Undo', 'GasUndo Kochi', 'Gas Undo Kochi'],
+      alternateName: ['Gas Undo', 'GasUndo Kerala', 'Gas Undo Kerala'],
       url: 'https://gasundo.live',
       inLanguage: 'en-IN',
       description: pageDescription,
       areaServed: {
         '@type': 'AdministrativeArea',
-        name: 'Kochi, Ernakulam, Kerala, India',
+        name: 'Kerala, India',
       },
       publisher: {
         '@type': 'Organization',
@@ -55,15 +56,15 @@ function buildStructuredData(restaurantCount) {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',
       name: 'GasUndo',
-      alternateName: ['Gas Undo', 'GasUndo Kochi', 'Gas Undo Kochi'],
+      alternateName: ['Gas Undo', 'GasUndo Kerala', 'Gas Undo Kerala'],
       url: 'https://gasundo.live',
       applicationCategory: 'UtilityApplication',
       operatingSystem: 'Any',
       inLanguage: 'en-IN',
       description: pageDescription,
       areaServed: {
-        '@type': 'City',
-        name: 'Kochi',
+        '@type': 'AdministrativeArea',
+        name: 'Kerala',
       },
       offers: {
         '@type': 'Offer',
@@ -71,10 +72,10 @@ function buildStructuredData(restaurantCount) {
         priceCurrency: 'INR',
       },
       featureList: [
-        'Live map of restaurants open in Kochi',
-        'Real-time Kochi restaurant status updates from the community',
+        'Live district-by-district map of restaurants open in Kerala',
+        'Real-time restaurant status updates from the community',
         'Open, limited-menu, and closed restaurant availability during the LPG shortage',
-        `${restaurantCount} mapped food places across Kochi and Ernakulam`,
+        `${restaurantCount} mapped food places in ${districtName}`,
       ],
     },
     {
@@ -92,18 +93,24 @@ function buildStructuredData(restaurantCount) {
   ]
 }
 
-export default async function Page() {
+export default async function Page({ searchParams }) {
   let initialRestaurants = []
   let initialError = null
+  const resolvedSearchParams = await searchParams
+  const initialDistrictSlug = normalizeDistrictSlug(resolvedSearchParams?.district)
+  const initialDistrict = getDistrictConfig(initialDistrictSlug)
 
   try {
-    initialRestaurants = await getRestaurants()
+    initialRestaurants = await getRestaurants(initialDistrictSlug)
   } catch (error) {
     console.error('Failed to load restaurants on the server:', error)
     initialError = 'Failed to load restaurants. Please try again.'
   }
 
-  const structuredData = buildStructuredData(initialRestaurants.length)
+  const structuredData = buildStructuredData(
+    initialRestaurants.length,
+    initialDistrict.name
+  )
 
   return (
     <main>
@@ -118,6 +125,7 @@ export default async function Page() {
       <HomeClient
         initialRestaurants={initialRestaurants}
         initialError={initialError}
+        initialDistrictSlug={initialDistrictSlug}
       />
     </main>
   )

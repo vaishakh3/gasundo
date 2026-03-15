@@ -1,4 +1,5 @@
-import { isWithinKochiBounds, STATUS_VALUES } from './constants.js'
+import { STATUS_VALUES } from './constants.js'
+import { isWithinKeralaBounds } from './districts.js'
 import { buildRestaurantKey } from './status-key.js'
 import { isUuid } from './uuid.js'
 
@@ -41,8 +42,8 @@ export function validateCreateStatusPayload(payload) {
     return { error: 'Latitude and longitude must be valid numbers.' }
   }
 
-  if (!isWithinKochiBounds(lat, lng)) {
-    return { error: 'Location is outside the Kochi coverage area.' }
+  if (!isWithinKeralaBounds(lat, lng)) {
+    return { error: 'Location is outside the Kerala coverage area.' }
   }
 
   const rawNote = typeof payload.note === 'string' ? payload.note.trim() : ''

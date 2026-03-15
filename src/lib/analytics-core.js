@@ -1,3 +1,5 @@
+import { parseDistrictSlug } from './districts.js'
+
 export const ANALYTICS_METRICS = [
   'place_open',
   'status_update',
@@ -112,10 +114,20 @@ export function validatePlaceOpenPayload(payload) {
     return { error: 'Restaurant name must be 120 characters or fewer.' }
   }
 
+  const districtSlugInput =
+    typeof payload.district_slug === 'string' ? payload.district_slug : ''
+  const districtSlug =
+    districtSlugInput.trim() === '' ? null : parseDistrictSlug(districtSlugInput)
+
+  if (districtSlugInput.trim() !== '' && !districtSlug) {
+    return { error: 'District must be a supported Kerala district.' }
+  }
+
   return {
     data: {
       restaurant_key: restaurantKey,
       restaurant_name: restaurantName,
+      district_slug: districtSlug,
     },
   }
 }

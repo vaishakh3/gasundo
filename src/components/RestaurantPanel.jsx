@@ -1,10 +1,14 @@
 'use client'
 
+import DistrictSelect from './DistrictSelect'
 import FilterBar from './FilterBar'
 import NoticeBanner from './NoticeBanner'
 import RestaurantDetailCard from './RestaurantDetailCard'
 
 export default function RestaurantPanel({
+  districtOptions,
+  selectedDistrict,
+  onDistrictChange,
   searchValue,
   onSearchChange,
   onClearSearch,
@@ -32,14 +36,25 @@ export default function RestaurantPanel({
             <div className="flex items-start justify-between gap-3">
               <div className="max-w-[220px]">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-slate-300/70">
-                  Kochi LPG shortage
+                  Kerala LPG shortage
                 </div>
-                <h1 className="mt-3 font-display text-[1.72rem] font-semibold leading-tight text-white">
-                  GasUndo: Kochi restaurant status map
+                <div className="mt-3 font-display text-[1.72rem] font-semibold leading-tight text-white">
+                  GasUndo:
+                </div>
+                <div className="mt-2">
+                  <DistrictSelect
+                    districtOptions={districtOptions}
+                    selectedDistrict={selectedDistrict}
+                    onDistrictChange={onDistrictChange}
+                    variant="hero"
+                  />
+                </div>
+                <h1 className="mt-2 font-display text-[1.72rem] font-semibold leading-tight text-white">
+                  restaurant status map
                 </h1>
                 <p className="mt-1 text-sm leading-5 text-slate-300/68">
-                  Find restaurants open in Kochi, limited-menu updates, and
-                  closures in real time.
+                  Find restaurants open in {selectedDistrict?.name}, limited-menu
+                  updates, and closures in real time.
                 </p>
               </div>
               <div className="rounded-[20px] border border-white/10 bg-white/5 px-3 py-3 text-right">
@@ -49,7 +64,9 @@ export default function RestaurantPanel({
                 <div className="mt-1 font-display text-[1.6rem] font-semibold text-white">
                   {totalCount}
                 </div>
-                <div className="text-[0.68rem] text-slate-300/55">places</div>
+                <div className="text-[0.68rem] text-slate-300/55">
+                  {isPending ? 'updating...' : 'places'}
+                </div>
               </div>
             </div>
 

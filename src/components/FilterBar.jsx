@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 
+import DistrictSelect from './DistrictSelect'
 import NoticeBanner from './NoticeBanner'
 import { STATUS_FILTERS, STATUS_META } from '@/lib/status-ui'
 
@@ -33,6 +34,9 @@ function getMobileResultsLabel(resultCount, totalCount) {
 }
 
 export default function FilterBar({
+  districtOptions = [],
+  selectedDistrict = null,
+  onDistrictChange,
   searchValue,
   onSearchChange,
   onClearSearch,
@@ -79,7 +83,7 @@ export default function FilterBar({
             <div className="flex items-center justify-between gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-slate-300/68">
                 <span className="h-2 w-2 rounded-full bg-[var(--accent-ember)] shadow-[0_0_14px_rgba(255,122,69,0.55)]" />
-                GasUndo Kochi
+                GasUndo Kerala
               </div>
               <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-slate-300/68">
                 {getMobileResultsLabel(resultCount, totalCount)}
@@ -87,6 +91,15 @@ export default function FilterBar({
             </div>
 
             <NoticeBanner notice={notice} className="mt-3" />
+
+            <div className="mt-3">
+              <DistrictSelect
+                districtOptions={districtOptions}
+                selectedDistrict={selectedDistrict}
+                onDistrictChange={onDistrictChange}
+                variant="compact"
+              />
+            </div>
           </>
         ) : null}
 

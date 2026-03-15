@@ -19,7 +19,7 @@ function LocateIcon() {
   )
 }
 
-export default function LocateButton({ onError }) {
+export default function LocateButton({ onError, onSuccess }) {
   const map = useMap()
   const [locating, setLocating] = useState(false)
 
@@ -54,6 +54,12 @@ export default function LocateButton({ onError }) {
         color: '#3b82f6',
         weight: 1,
       }).addTo(map)
+
+      onSuccess?.({
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        accuracy: e.accuracy,
+      })
 
       map.flyTo(e.latlng, 15, { duration: 1 })
     })

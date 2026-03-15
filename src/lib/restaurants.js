@@ -3,7 +3,7 @@ import 'server-only'
 import { unstable_cache } from 'next/cache'
 import bundledRestaurants from '../data/restaurants-kochi.json' with { type: 'json' }
 
-import { KOCHI_BOUNDS, isWithinKochiBounds } from './constants.js'
+import { DEFAULT_DISTRICT_SLUG, getDistrictConfig } from './districts.js'
 import { buildRestaurantKey } from './status-key.js'
 
 const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
@@ -12,24 +12,6 @@ export const RESTAURANTS_CACHE_TAG = 'restaurant-catalog'
 const DEFAULT_FETCH_TIMEOUT_MS = 8000
 const FOOD_AMENITY_PATTERN =
   '^(restaurant|cafe|fast_food|food_court|bar|pub|ice_cream)$'
-
-const KOCHI_QUERY = `
-[out:json][timeout:25];
-(
-  node["amenity"~"${FOOD_AMENITY_PATTERN}"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  way["amenity"~"${FOOD_AMENITY_PATTERN}"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  relation["amenity"~"${FOOD_AMENITY_PATTERN}"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-
-  node["shop"="bakery"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  way["shop"="bakery"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  relation["shop"="bakery"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-
-  node["amenity"="ice_cream"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  way["amenity"="ice_cream"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-  relation["amenity"="ice_cream"](${KOCHI_BOUNDS.minLat},${KOCHI_BOUNDS.minLng},${KOCHI_BOUNDS.maxLat},${KOCHI_BOUNDS.maxLng});
-);
-out center;
-`
 
 function parseCoordinate(value) {
   const numericValue = Number(value)
@@ -67,7 +49,49 @@ function buildRestaurantAddress(tags) {
   return locationFallbacks.find(Boolean) || null
 }
 
-async function fetchRestaurantsFromOverpass() {
+function escapeOverpassRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function buildDistrictOverpassQuery(district) {
+  const districtNamePattern = `^${escapeOverpassRegex(
+    district.overpassName
+  )}( District| district)?$`
+
+  return `
+[out:json][timeout:25];
+area["ISO3166-2"="IN-KL"]["boundary"="administrative"]->.kerala;
+(
+  relation(area.kerala)["boundary"="administrative"]["admin_level"~"5|6"]["name"~"${districtNamePattern}"];
+  relation(area.kerala)["boundary"="administrative"]["admin_level"~"5|6"]["name:en"~"${districtNamePattern}"];
+);
+map_to_area->.searchArea;
+(
+  node["amenity"~"${FOOD_AMENITY_PATTERN}"](area.searchArea);
+  way["amenity"~"${FOOD_AMENITY_PATTERN}"](area.searchArea);
+  relation["amenity"~"${FOOD_AMENITY_PATTERN}"](area.searchArea);
+
+  node["shop"="bakery"](area.searchArea);
+  way["shop"="bakery"](area.searchArea);
+  relation["shop"="bakery"](area.searchArea);
+
+  node["amenity"="ice_cream"](area.searchArea);
+  way["amenity"="ice_cream"](area.searchArea);
+  relation["amenity"="ice_cream"](area.searchArea);
+);
+out center;
+`
+}
+
+function normalizeRestaurantRecord(restaurant, district) {
+  return {
+    ...restaurant,
+    district: district.name,
+    district_slug: district.slug,
+  }
+}
+
+async function fetchRestaurantsFromOverpass(district) {
   const overpassUrl =
     process.env.RESTAURANT_CATALOG_OVERPASS_URL || DEFAULT_OVERPASS_URL
   const timeoutMs = Number(process.env.RESTAURANT_CATALOG_FETCH_TIMEOUT_MS)
@@ -81,7 +105,7 @@ async function fetchRestaurantsFromOverpass() {
     headers: {
       'Content-Type': 'text/plain;charset=UTF-8',
     },
-    body: KOCHI_QUERY,
+    body: buildDistrictOverpassQuery(district),
     cache: 'no-store',
     signal: AbortSignal.timeout(effectiveTimeoutMs),
   })
@@ -101,46 +125,52 @@ async function fetchRestaurantsFromOverpass() {
       const tags = element.tags || {}
       const name = tags.name
 
-      return {
-        id: `${element.type}:${element.id}`,
-        restaurant_key: buildRestaurantKey({ name, lat, lng }),
-        osm_type: element.type,
-        osm_id: String(element.id),
-        name,
-        brand: tags.brand || null,
-        address: buildRestaurantAddress(tags),
-        lat,
-        lng,
-      }
+      return normalizeRestaurantRecord(
+        {
+          id: `${element.type}:${element.id}`,
+          restaurant_key: buildRestaurantKey({ name, lat, lng }),
+          osm_type: element.type,
+          osm_id: String(element.id),
+          name,
+          brand: tags.brand || null,
+          address: buildRestaurantAddress(tags),
+          lat,
+          lng,
+        },
+        district
+      )
     })
-    .filter(
-      (restaurant) =>
-        restaurant.lat !== null &&
-        restaurant.lng !== null &&
-        isWithinKochiBounds(restaurant.lat, restaurant.lng)
-    )
+    .filter((restaurant) => restaurant.lat !== null && restaurant.lng !== null)
     .sort((left, right) => left.name.localeCompare(right.name))
 }
 
-async function loadRestaurantsCatalog() {
+async function loadRestaurantsCatalog(districtSlug = DEFAULT_DISTRICT_SLUG) {
+  const district = getDistrictConfig(districtSlug)
+
   try {
-    const liveRestaurants = await fetchRestaurantsFromOverpass()
+    const liveRestaurants = await fetchRestaurantsFromOverpass(district)
 
     if (liveRestaurants.length > 0) {
       return liveRestaurants
     }
 
     console.warn(
-      'Live restaurant catalog fetch returned no rows. Falling back to bundled snapshot.'
+      `Live restaurant catalog fetch returned no rows for ${district.name}.`
     )
   } catch (error) {
     console.error(
-      'Failed to fetch the live restaurant catalog. Falling back to bundled snapshot:',
+      `Failed to fetch the live restaurant catalog for ${district.name}:`,
       error
     )
   }
 
-  return bundledRestaurants
+  if (district.slug === DEFAULT_DISTRICT_SLUG) {
+    return bundledRestaurants.map((restaurant) =>
+      normalizeRestaurantRecord(restaurant, district)
+    )
+  }
+
+  throw new Error(`Could not load the ${district.name} restaurant catalog.`)
 }
 
 export const getRestaurants = unstable_cache(

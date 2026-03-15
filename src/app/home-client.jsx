@@ -2,7 +2,14 @@
 
 import dynamic from 'next/dynamic'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { useAuth } from '@/components/AuthProvider'
 import FilterBar from '@/components/FilterBar'
@@ -18,9 +25,13 @@ import {
   selectVisibleRestaurantIds,
 } from '@/lib/catalog-query'
 import {
-  CATALOG_QUERY_KEY,
-  getStatusSnapshotQueryKey,
-} from '@/lib/query-keys'
+  DEFAULT_DISTRICT_SLUG,
+  DISTRICT_OPTIONS,
+  getDistrictByCoordinates,
+  getDistrictConfig,
+  normalizeDistrictSlug,
+} from '@/lib/districts'
+import { getCatalogQueryKey, getStatusSnapshotQueryKey } from '@/lib/query-keys'
 import { useQueryStore } from '@/store/query-store'
 import { logPlaceOpen } from '@/services/analyticsService'
 import { fetchCatalog } from '@/services/catalogService'
@@ -52,7 +63,11 @@ function mergeStatusIntoSnapshot(snapshot, status) {
   }
 }
 
-export default function HomeClient({ initialRestaurants, initialError }) {
+export default function HomeClient({
+  initialRestaurants,
+  initialError,
+  initialDistrictSlug = DEFAULT_DISTRICT_SLUG,
+}) {
   const queryClient = useQueryClient()
   const hasHydratedSharedRestaurantRef = useRef(false)
   const previousSelectedRestaurantIdRef = useRef(null)
@@ -71,30 +86,47 @@ export default function HomeClient({ initialRestaurants, initialError }) {
   const clearSelectedRestaurant = useQueryStore(
     (state) => state.clearSelectedRestaurant
   )
+  const normalizedInitialDistrictSlug = useMemo(
+    () => normalizeDistrictSlug(initialDistrictSlug),
+    [initialDistrictSlug]
+  )
+  const [selectedDistrictSlug, setSelectedDistrictSlug] = useState(
+    normalizedInitialDistrictSlug
+  )
+  const [mapViewportRequest, setMapViewportRequest] = useState(null)
   const [notice, setNotice] = useState(() =>
     initialError ? { tone: 'error', message: initialError, id: 'initial-error' } : null
   )
   const deferredSearch = useDeferredValue(search)
   const viewerScope = viewer?.userId || 'guest'
+  const selectedDistrict = useMemo(
+    () => getDistrictConfig(selectedDistrictSlug),
+    [selectedDistrictSlug]
+  )
   const statusSnapshotQueryKey = useMemo(
     () => getStatusSnapshotQueryKey(viewerScope),
     [viewerScope]
   )
-  const showNotice = (message, tone = 'neutral') => {
+  const showNotice = useCallback((message, tone = 'neutral') => {
     setNotice({
       id: Date.now(),
       message,
       tone,
     })
-  }
+  }, [])
 
   const catalogQuery = useQuery({
-    queryKey: CATALOG_QUERY_KEY,
-    queryFn: fetchCatalog,
-    initialData: {
-      catalogVersion: 'server-rendered',
-      restaurants: initialRestaurants,
-    },
+    queryKey: getCatalogQueryKey(selectedDistrictSlug),
+    queryFn: () => fetchCatalog(selectedDistrictSlug),
+    initialData:
+      !initialError && selectedDistrictSlug === normalizedInitialDistrictSlug
+        ? {
+            catalogVersion: 'server-rendered',
+            district: selectedDistrictSlug,
+            districtName: getDistrictConfig(selectedDistrictSlug).name,
+            restaurants: initialRestaurants,
+          }
+        : undefined,
     staleTime: 24 * 60 * 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -107,6 +139,15 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     enabled: authReady,
     staleTime: 30 * 1000,
   })
+  const activeNotice =
+    notice ||
+    (catalogQuery.error?.message
+      ? {
+          id: 'catalog-error',
+          message: catalogQuery.error.message,
+          tone: 'error',
+        }
+      : null)
 
   useEffect(() => {
     if (!notice?.id) return undefined
@@ -138,7 +179,7 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     currentUrl.searchParams.delete('authError')
     window.history.replaceState({}, '', currentUrl)
     return () => window.cancelAnimationFrame(frameId)
-  }, [])
+  }, [showNotice])
 
   const restaurants = useMemo(
     () => catalogQuery.data?.restaurants || [],
@@ -219,6 +260,12 @@ export default function HomeClient({ initialRestaurants, initialError }) {
 
     const currentUrl = new URL(window.location.href)
 
+    if (selectedDistrictSlug === DEFAULT_DISTRICT_SLUG) {
+      currentUrl.searchParams.delete('district')
+    } else {
+      currentUrl.searchParams.set('district', selectedDistrictSlug)
+    }
+
     if (selectedRestaurantId) {
       currentUrl.searchParams.set('restaurant', selectedRestaurantId)
     } else {
@@ -226,7 +273,7 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     }
 
     window.history.replaceState({}, '', currentUrl)
-  }, [selectedRestaurantId])
+  }, [selectedDistrictSlug, selectedRestaurantId])
 
   const queryState = useMemo(
     () => ({
@@ -365,6 +412,47 @@ export default function HomeClient({ initialRestaurants, initialError }) {
   const selectedRestaurant = selectedRecord?.restaurant || null
   const selectedStatusData = selectedRecord?.statusData || null
   const isFiltering = search !== deferredSearch
+  const isCatalogFetching = catalogQuery.isFetching
+  const isPending = isFiltering || isCatalogFetching
+
+  const handleDistrictChange = (nextDistrictSlug, { source = 'manual' } = {}) => {
+    const normalizedDistrictSlug = normalizeDistrictSlug(nextDistrictSlug)
+
+    if (normalizedDistrictSlug === selectedDistrictSlug) {
+      return
+    }
+
+    clearSearch()
+    clearSelectedRestaurant()
+    setSelectedDistrictSlug(normalizedDistrictSlug)
+
+    if (source === 'manual') {
+      setMapViewportRequest({
+        id: Date.now(),
+        kind: 'district',
+        districtSlug: normalizedDistrictSlug,
+      })
+    }
+  }
+
+  const handleLocateSuccess = ({ lat, lng }) => {
+    const locatedDistrict = getDistrictByCoordinates(lat, lng)
+
+    if (!locatedDistrict) {
+      showNotice(
+        'Your location is outside the Kerala coverage area. Showing the current district.',
+        'error'
+      )
+      return
+    }
+
+    if (locatedDistrict.slug === selectedDistrictSlug) {
+      return
+    }
+
+    handleDistrictChange(locatedDistrict.slug, { source: 'location' })
+    showNotice(`Showing restaurants in ${locatedDistrict.name}.`, 'neutral')
+  }
 
   useEffect(() => {
     if (!selectedRestaurantId) {
@@ -386,6 +474,7 @@ export default function HomeClient({ initialRestaurants, initialError }) {
     void logPlaceOpen({
       restaurant_key: selectedRestaurant.restaurant_key,
       restaurant_name: selectedRestaurant.name,
+      district_slug: selectedRestaurant.district_slug,
     }).catch((error) => {
       console.error('Failed to record place-open analytics:', error)
     })
@@ -409,6 +498,9 @@ export default function HomeClient({ initialRestaurants, initialError }) {
         style={{ minHeight: 'var(--app-vh)' }}
       >
         <RestaurantPanel
+          districtOptions={DISTRICT_OPTIONS}
+          selectedDistrict={selectedDistrict}
+          onDistrictChange={handleDistrictChange}
           searchValue={search}
           onSearchChange={setSearch}
           onClearSearch={clearSearch}
@@ -425,8 +517,8 @@ export default function HomeClient({ initialRestaurants, initialError }) {
           onStatusUpdate={handleStatusUpdate}
           onConfirm={handleConfirm}
           onNotice={showNotice}
-          notice={notice}
-          isPending={isFiltering}
+          notice={activeNotice}
+          isPending={isPending}
         />
 
         <div
@@ -435,12 +527,15 @@ export default function HomeClient({ initialRestaurants, initialError }) {
         >
           <div className="absolute inset-0">
             <MapView
+              district={selectedDistrict}
+              viewportRequest={mapViewportRequest}
               restaurantIds={mapRestaurantIds}
               restaurantsById={catalogIndex.restaurantById}
               statusMap={statusMap}
               onSelectRestaurant={handleSelectRestaurant}
               selectedRestaurant={selectedRestaurant}
               selectedRestaurantId={selectedRestaurantId}
+              onLocateSuccess={handleLocateSuccess}
               onLocateError={(message) => showNotice(message, 'error')}
             />
           </div>
@@ -448,6 +543,9 @@ export default function HomeClient({ initialRestaurants, initialError }) {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,122,69,0.2),transparent_22%),radial-gradient(circle_at_top_right,rgba(250,204,21,0.08),transparent_18%),linear-gradient(180deg,rgba(6,10,22,0.42),transparent_26%,rgba(6,10,22,0.25))]" />
 
           <FilterBar
+            districtOptions={DISTRICT_OPTIONS}
+            selectedDistrict={selectedDistrict}
+            onDistrictChange={handleDistrictChange}
             searchValue={search}
             onSearchChange={setSearch}
             onClearSearch={clearSearch}
@@ -458,8 +556,8 @@ export default function HomeClient({ initialRestaurants, initialError }) {
             resultCount={visibleRestaurantIds.length}
             totalCount={catalogIndex.restaurantIds.length}
             summaryCounts={summaryCounts}
-            notice={notice}
-            isPending={isFiltering}
+            notice={activeNotice}
+            isPending={isPending}
             variant="mobile"
           />
 

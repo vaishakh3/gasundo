@@ -1,8 +1,8 @@
 {
-  "name": "GasUndo Kochi",
+  "name": "GasUndo Kerala",
   "short_name": "GasUndo",
   "id": "/",
-  "description": "Gas Undo (GasUndo) is a crowdsourced live map of restaurants affected by the LPG shortage in Kochi",
+  "description": "GasUndo is a crowdsourced live map of restaurants affected by the LPG shortage across Kerala",
   "scope": "/",
   "start_url": "/",
   "display": "standalone",

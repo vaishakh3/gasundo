@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { getDistrictConfig, normalizeDistrictSlug } from '@/lib/districts'
 import { createStrongEtag, isEtagFresh } from '@/lib/http-cache'
 import { getRestaurants } from '@/lib/restaurants'
 
@@ -9,7 +10,11 @@ const CACHE_CONTROL = 'public, s-maxage=86400, stale-while-revalidate=86400'
 
 export async function GET(request) {
   try {
-    const restaurants = await getRestaurants()
+    const districtSlug = normalizeDistrictSlug(
+      new URL(request.url).searchParams.get('district')
+    )
+    const district = getDistrictConfig(districtSlug)
+    const restaurants = await getRestaurants(district.slug)
     const catalogVersion = createStrongEtag(restaurants).slice(1, -1)
     const etag = `"${catalogVersion}"`
     const headers = {
@@ -24,6 +29,8 @@ export async function GET(request) {
     return NextResponse.json(
       {
         catalogVersion,
+        district: district.slug,
+        districtName: district.name,
         restaurants,
       },
       { headers }
