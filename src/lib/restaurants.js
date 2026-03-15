@@ -11,6 +11,7 @@ const RESTAURANTS_CACHE_TTL_SECONDS = 24 * 60 * 60
 export const RESTAURANTS_CACHE_TAG = 'restaurant-catalog'
 const DEFAULT_FETCH_TIMEOUT_MS = 8000
 const DB_SYNC_STALE_MS = 24 * 60 * 60 * 1000
+const DB_SYNC_IN_PROGRESS_TIMEOUT_MS = 20 * 60 * 1000
 const RESTAURANT_CATALOG_TABLE = 'restaurant_catalog'
 const RESTAURANT_CATALOG_SYNC_TABLE = 'restaurant_catalog_sync'
 const RESTAURANT_CATALOG_SYNC_ROW_ID = 'main'
@@ -380,6 +381,20 @@ function isCatalogSyncStale(syncState) {
   return Date.now() - lastSuccessfulAt >= DB_SYNC_STALE_MS
 }
 
+function isCatalogSyncInProgress(syncState) {
+  if (syncState?.status !== 'syncing' || !syncState?.last_started_at) {
+    return false
+  }
+
+  const lastStartedAt = new Date(syncState.last_started_at).getTime()
+
+  if (!Number.isFinite(lastStartedAt)) {
+    return false
+  }
+
+  return Date.now() - lastStartedAt < DB_SYNC_IN_PROGRESS_TIMEOUT_MS
+}
+
 function applyStableRestaurantKeys(restaurants, existingRowsByPlaceId) {
   return restaurants.map((restaurant) => {
     const existingRow = existingRowsByPlaceId.get(restaurant.place_id)
@@ -403,6 +418,22 @@ function chunkArray(items, chunkSize) {
   }
 
   return chunks
+}
+
+function getErrorMessage(error) {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return String(error)
+  }
 }
 
 async function upsertRestaurantsToDb(supabase, restaurants, existingRowsByPlaceId) {
@@ -476,7 +507,7 @@ async function syncRestaurantsToDb(supabase) {
     await writeCatalogSyncState(supabase, {
       status: 'idle',
       last_completed_at: new Date().toISOString(),
-      last_error: error instanceof Error ? error.message : String(error),
+      last_error: getErrorMessage(error),
     })
 
     throw error
@@ -565,6 +596,17 @@ async function loadRestaurantsCatalog() {
 
       if (dbRestaurants.length > 0 && !isCatalogSyncStale(syncState)) {
         return dbRestaurants
+      }
+
+      if (isCatalogSyncInProgress(syncState)) {
+        if (dbRestaurants.length > 0) {
+          return dbRestaurants
+        }
+
+        console.warn(
+          'Restaurant catalog sync is already in progress. Returning bundled snapshot for this request.'
+        )
+        return bundledRestaurants
       }
 
       const syncedRestaurants = await syncRestaurantsToDb(supabase)
